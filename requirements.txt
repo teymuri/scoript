@@ -1,0 +1,3 @@
+svgwrite
+svgelements
+svgpathtools
