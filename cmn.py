@@ -6,6 +6,8 @@ import copy
 
 def istime(x): return isinstance(x, S.SimpleTimeSig)
 def settime(ts):
+    """this is the ultimate, the one and the only guy putting
+    together and punching time sigs"""
     ts.num_punch=S.E.MChar({3: "three", 4:"four", 5:"five"}.get(ts.num, ".notdef"))
     ts.denom_punch=S.E.MChar({4: "four", 2:"two", 1: "one"}.get(ts.denom, ".notdef"))
     if ts.denom == 1:
@@ -159,9 +161,11 @@ def opachead(n): n.head_punch.opacity = .3
 hook mehrmals überall, 
 test
 """
+# The single argument to rule hooks are every objects defined in your
+# score.
 S.E.cmn.unsafeadd(settime,istime,"Set Time...",)
 S.E.cmn.unsafeadd(make_notehead, noteandtreble, "make noteheads",)
-S.E.cmn.unsafeadd(notehead_vertical_pos, noteandtreble)
+S.E.cmn.unsafeadd(notehead_vertical_pos, noteandtreble, "????")
 S.E.cmn.unsafeadd(make_accidental_char, isacc, "Making Accidental Characters",)
 # e.cmn.unsafeadd(greenhead, noteandtreble)
 S.E.cmn.unsafeadd(setstem, isnote, "Set stems",)
@@ -223,6 +227,7 @@ def skew(staff):
     print(staff.skewx)
 def ishline(x): return isinstance(x,S.E.HLineSeg)
 # S.E.cmn.add(skew, isline, "SKEW stave")
+# S.E.cmn.unsafeadd(skew, isline, "SKEW stave")
 
 def flag(note):
     if note.duration != 1:
@@ -273,26 +278,28 @@ if __name__=="__main__":
     s1=System(
         
         [
-        S.Clef(pitch="g", canvas_visible=False),
-        S.SimpleTimeSig(denom=1),
-        # # S.Clef(pitch="f"),
-        # # S.Clef(pitch="F"),
-        # # S.Clef(pitch="F"),
-        # # S.Clef(pitch="F"),
-        # # S.Clef(pitch="c"),
+            S.Clef(pitch="g", canvas_visible=False),
+            
+            S.SimpleTimeSig(denom=1),
+            
+            # # S.Clef(pitch="f"),
+            # # S.Clef(pitch="F"),
+            # # S.Clef(pitch="F"),
+            # # S.Clef(pitch="F"),
+            # # S.Clef(pitch="c"),
         S.Note(domain="treble", duration="h", pitch=["c",4]), 
-        S.Note(domain="treble", duration="q", pitch=["c",4]), 
-        # Wir entscheiden über beam, wie stem einfach in Rules!
+            S.Note(domain="treble", duration="q", pitch=["c",4]), 
+            # Wir entscheiden über beam, wie stem einfach in Rules!
         S.Note(domain="treble", duration="h", pitch=["c",4]), 
-        S.Note(domain="treble", duration="h", pitch=["d",4]),
-        S.Accidental(pitch="c",         ),
-        *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(7)],
-        S.Note(domain="treble", duration="w", pitch=["c",4]), 
-        S.Note(domain="treble", duration="q", pitch=["c",4]), 
-        S.Note(domain="treble", duration="q", pitch=["c",4])],
-    width=S.E.mmtopx(100))
+            S.Note(domain="treble", duration="h", pitch=["d",4]),
+            S.Accidental(pitch="c",         ),
+            *[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["d",4]) for _ in range(7)],
+            S.Note(domain="treble", duration="w", pitch=["c",4]), 
+            S.Note(domain="treble", duration="q", pitch=["c",4]), 
+            S.Note(domain="treble", duration="q", pitch=["c",4])],
+        width=S.E.mmtopx(200))
     
-    s2=System([S.SimpleTimeSig(denom=4),*[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)]], width=S.E.mmtopx(100))
+    s2=System([S.SimpleTimeSig(denom=2),*[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)]], width=S.E.mmtopx(100))
     S.E.render(s1)
     # C= S.E.VForm(content=[s1], x=200, y=120)
     # print(C.y,C.fixtop,C.top)
