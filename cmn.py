@@ -1,3 +1,14 @@
+"""
+Generally how defining new rules happens:
+1. What is the rule about, what is it it's doing, to which object it applies?
+2. At which moment in the engraving process should the rule
+be applied (i.e. be added/unsafeadded to the rule table)
+3. Make a rule predicate func which returns true when called with some
+object as arg (this is called then on each obj in the score), to find out
+to which objs our rule should be applied.
+4. Make the actual engraving func which is applied to that object
+"""
+
 from random import randint, choice
 import score as S
 import copy 
@@ -10,6 +21,7 @@ def settime(ts):
     together and punching time sigs"""
     ts.num_punch=S.E.MChar({3: "three", 4:"four", 5:"five"}.get(ts.num, ".notdef"))
     ts.denom_punch=S.E.MChar({4: "four", 2:"two", 1: "one"}.get(ts.denom, ".notdef"))
+    # I'm shifting the 1 here because I know the font's properties?
     if ts.denom == 1:
         d=ts.denom_punch.parent().width - ts.denom_punch.width
         ts.denom_punch.right = ts.denom_punch.parent().right
@@ -300,7 +312,12 @@ if __name__=="__main__":
         width=S.E.mmtopx(200))
     
     s2=System([S.SimpleTimeSig(denom=2),*[S.Note(domain="treble", duration=choice(["q", "h"]), pitch=["c",4]) for _ in range(10)]], width=S.E.mmtopx(100))
-    S.E.render(s1)
+    s3 = S.E.HForm(content=(
+        # S.Clef(pitch="g"),
+        S.SimpleTimeSig(denom=1),
+        # S.Clef(pitch="f")
+    ))
+    S.E.render(s3)
     # C= S.E.VForm(content=[s1], x=200, y=120)
     # print(C.y,C.fixtop,C.top)
     # S.E.render(S.Note(domain="treble", duration="q", pitch=["c",4]))

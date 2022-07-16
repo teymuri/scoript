@@ -182,10 +182,10 @@ class RuleTable:
             self._hook_registry.append(hhash)
             self._pred_registry.append(phash)
         
-    def unsafeadd(self, hook,condition,desc="..."):
+    def unsafeadd(self, hook,pred,desc="..."):
         self.rules[self._order] = {"desc": desc,
                                    "hook": hook,
-                                   "condition": condition,
+                                   "pred": pred,
                                    "applied": False}
         # next rule will be added at the next position, this order
         # decides when the rule should be applied.
@@ -241,7 +241,7 @@ class _SMTObject:
         Applies rules to self and all it's descendants.
         A rule will look for application target objects exactly once per each 
         rule-application iteration. This means however that a rule might be applied
-        to an object more than once, if the object satisfies it's condition.
+        to an object more than once, if the object satisfies it's pred.
         """
         depth = -1
         print("APPLYING RULES:")
@@ -258,7 +258,7 @@ class _SMTObject:
                             print(f"RT: {rt.name}, DEPTH: {depth}, ORDER: {order}, DESC: {rule['desc']}")
                         # get in each round the up-to-date list of members (possibly new objects have been added etc....)
                         for m in members(self):
-                            if rule["condition"](m):
+                            if rule["pred"](m):
                                 rule["hook"](m)
                                 if isinstance(m, HForm): m._lineup() # Das untenstehende scheint sinvoller??!
                                 # for a in reversed(m.ancestors):
