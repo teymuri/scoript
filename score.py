@@ -8,6 +8,8 @@ Conveniece for creating score objects
 import engine as E
 
 
+
+
 class Clock:
     def __init__(self, duration=None):
         self.duration = duration or 0.25
@@ -39,6 +41,7 @@ class Staff(E.VForm):
         for i in range(count):
             c.append(E.SForm(content=[E.HLineSeg(length=20, thickness=1)], height=1))
         super().__init__(content=c, **kwargs)
+
 
 class Stem(E.VLineSeg):
     def __init__(self, **kwargs):

@@ -1,191 +1,310 @@
 
-
-
+"""
 
 
 """
-
-setting:
-[= a 2]
-
-
-
-
-
-
-Wir brauchen auch eine Konsole zum printen
-
-[print Hello world, welcome to the SMTPad, a text-editor for 
-Semantic Music Typesetting!]
-[print
- [pitch [note [pitch 60]]]
-]
-
-[Function [a b c]
-  [loop x in [range 10 21]
-     [print [+ a b c]]]]
-
-[defrule [note clef hform accidental]
- 	 [treble bass alto]
-	 [function [self]
-	    comment line, dont do this: [inc [x self]] 
-instead use the set operator
-	    [assign [x self] [* [x self] 10]]
-	 [function [self]
-	   [set [color self] green]]
-	 [function [self parent]
-	   [set [xscale parent] [* 3 4 .5 2]]]
-]]
-
-@ = Object to which rule must be applied!
-@color = [color object]
-@0color = [color [at 0 [content object]]]
-@-1color = [color [ancestors object]]
-[defrule [set @color [list [random 0 101] 0 0]]]
-
-
-A named function:
-
-[set fun [function [x y] [print [* x y]]]]
-[fun 3 4] => 12
-vs. anonymus function:
-
-[function [x y] a doc string? [print [list x y]]]
-
-[[function [a b] [* a b]] 3 4] => 12
-
-[procedure make_note [p] [note [pitch p] [duration 1] [id foo]]
-[line [toplevel yes] [make_note c4]]
-
-comment whole line, aber das wird trotzdem gemach [+ 2 1]
-[print [getby pitch c4] 
-[getby id 
-foo]
-]
-
-
-
-[fun FoBar]
-
-
-"""
-# import inspect
-# import re
-import rply
+import re
+from functools import reduce
 from score import *
 
 
-lg = rply.LexerGenerator()
+# S.E.cmn.unsafeadd(settime,istime,"Set Time...",)
+LPAR = "("
+RPAR = ")"
 
-# lg.add('NUMBER', r'\d+')
-lg.add('NUMBER', r'[\d\s]+')
-lg.add('PLUS', r'\+')
-lg.add('OPEN', r'\[')
-lg.add('CLOSE', r'\]')
-
-lg.ignore('\s+')
-
-lexer = lg.build()
-
-
-class Number(rply.token.BaseBox):
-    def __init__(self, value):
-        self.value = value
-    def eval(self):
-        return self.value
-class Numbers(rply.token.BaseBox):
-    def __init__(self, *value):
-        self.value = value
-    def eval(self):
-        return self.value
-
-# class Prefix(rply.token.BaseBox):
-    # def __init__(self, cdr):
-        # # self.left = left
-        # self.cdr = cdr
-
-class Add(rply.token.BaseBox):
-   def __init__(self, cdr):
-      self.cdr =cdr
-   def eval(self):
-      # print("CDR",self.cdr)
-      return sum(self.cdr[0].eval())
-      # return self.cdr.eval()+.2
-
-
-pg = rply.ParserGenerator(
-    # A list of all token names, accepted by the parser.
-    ['NUMBER', 'OPEN', 'CLOSE',
-     'PLUS'
-    ],
-    # A list of precedence rules with ascending precedence, to
-    # disambiguate ambiguous production rules.
-    # precedence=[
-        # ('left', ['PLUS', 'MINUS']),
-        # ('left', ['MUL', 'DIV'])
-    # ]
-)
-
-@pg.production('expression : NUMBER')
-def expression_number_____(p):
-    # p is a list of the pieces matched by the right hand side of the
-    # rule
-    # print("---------",p[0].getstr().split(" "))
-    # print("==========",Number([int(x) for x in p[0].getstr().split(" ")]).eval())
-    return(Number([int(x) for x in p[0].getstr().split(" ")]))
-    # return Number(int(p[0].getstr()))
-
-# @pg.production('expression : OPEN expression CLOSE')
-# def expression_parens(p):
-   # print(">>>>", p)
-   # return p[1]
-
-@pg.production('expression : OPEN PLUS expression CLOSE')
-# @pg.production('expression : expression MINUS expression')
-# @pg.production('expression : expression MUL expression')
-# @pg.production('expression : expression DIV expression')
-def expression_binop(p):
-    # left = p[0]
-    # right = p[2]
-   # print(">>",p[1].gettokentype())
-   if p[1].gettokentype() == 'PLUS':
-      return Add(p[2:-1])
-   else:
-      raise AssertionError('Oops, this should not be possible!')
-
-parser = pg.build()
-
-print(parser.parse(lexer.lex('[+ 102 3 45]')).eval())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-smtobjs = {
-   "hform": HForm, "sform": SForm, "vform": VForm, "char": Char,
-   "note": Note
-}
-smt_pubattrs = {
-   "note": [x for x in dir(Note) if not x.startswith("_") and not callable(x)] 
+SMTCONS = {x.__name__.lower(): x for x in (
+        E.SForm, E.HForm, E.VForm, E.MChar,
+        Note, SimpleTimeSig, Clef
+    )
 }
 
+TYPENV = {t.__name__.lower(): t for t in (
+        list, int, float, str,
+        E.SForm, E.HForm, E.VForm, E.MChar,
+        Note, Clef
+    )
+}
+
+def attrgetter(attr_name): 
+    return lambda inst: getattr(inst, attr_name)
+
+# Put things here which shouldn't be evalulated (evaluation needs env)!
+def make_env(*others):
+    # These names have priority over object's methods
+    D = {
+        'list': lambda *args: list(args),
+        "+": lambda *args: reduce(lambda x, y: x + y, args),
+        "*": lambda *args: reduce(lambda x, y: x * y, args),
+        "=": lambda *args: args.count(args[0]) == len(args),
+        "?": print,
+        "t": True, "f": False,
+        "render": E.render, "rt": E._RT
+    }
+    if others:
+        for other in others:
+            D.update(other)
+    return D
+    
+
+class _Function:
+    def __init__(self, params, body):
+        self.params = params
+        self.body = body
+        self.env = make_env()
+    
+    def __call__(self, *args):
+        assert len(self.params) == len(args)
+        self.env.update(zip(self.params, args))
+        for exp in self.body[:-1]: # Side effects
+            evalexp(exp, self.env)
+        return evalexp(self.body[-1], self.env)
+        
+
+def evalexp(exp, env):
+    """
+    (def rt t/f
+      (! (pitch @) "C#4"))
+    """
+    if isinstance(exp, (int, float)): return exp
+    
+    elif isinstance(exp, list):
+        car = exp[0]
+        cdr = exp[1:]
+        if car == "case":
+            for pred, x in cdr:
+                if evalexp(pred, env):
+                    return evalexp(x, env)
+            return False
+        elif car == "def": # defining rules
+            rt, pred, *body = cdr
+        elif car == "and":
+            return all([evalexp(a, env) for a in cdr])
+        # Setter defining variabls
+        elif car == '!':
+            thing, val = cdr
+            if isinstance(thing, list):
+                name, obj = thing
+                setattr(evalexp(obj, env), name, evalexp(val, env))
+            elif isinstance(thing, str): # a symbol
+                env[thing] = evalexp(val, env)
+            else:
+                raise SyntaxError
+                
+        # Comment
+        elif car == '~': pass
+        
+        elif car == "Inc": 
+            curr = evalexp(exp[1], env)
+            print("??????????????")
+        
+        elif car == "is?":
+            thing = cdr[0]
+            type_ = cdr[1]
+            return isinstance(evalexp(thing, env), TYPENV[type_])
+        
+        # Function definition
+        elif car == "fn":
+            if isinstance(cdr[0], str): # Named function
+                pass
+            else: # anonymus function
+                params = cdr[0]
+                body = cdr[1:]
+                return _Function(params, body)
+        
+        # Anonymus function call
+        elif isinstance(car, list):
+            op = evalexp(car, env)
+            args = [evalexp(arg, env) for arg in cdr]
+            return op(*args)
+        # Named function call
+        elif car in env:
+            op = env[car]
+            args = [evalexp(arg, env) for arg in cdr]
+            return op(*args)
+            
+        # A SMT constructor (the class and it's attributes)
+        elif car in SMTCONS:
+            # att[0] = att name, att[1] = att value
+            return SMTCONS[car](**dict([(att[0], evalexp(att[1], env)) for att in cdr]))
+        else:
+            # The last resort: try to resolve car as an
+            # attribute or a method of an object (which must come at cdr[0])
+            obj = cdr[0]
+            args = cdr[1:]
+            try:
+                # A method? then call it, if car not an attribute at all,
+                # let's have an AttributeError!
+                return getattr(evalexp(obj, env), car)(*args)
+            except TypeError: # Menas car is an attr, but not callable!
+                return getattr(evalexp(obj, env), car)
+    # A string
+    elif exp.startswith("\"") and exp.endswith("\""):
+        return exp[1:-1]
+    # Should be a variable
+    else:
+        return env[exp]
+
+# Allow anything between double quotes except with double quote itself!
+STRPATT = re.compile(r'"[^"]*"')
+def tokenize_source(src):
+    """
+    """
+    src = src.strip()
+    str_matches = list(STRPATT.finditer(src))
+    spans = [m.span() for m in str_matches]
+    indices = [0] + [i for s in spans for i in s] + [len(src)]
+    tokens = []
+    for x in list(zip(indices[:-1], indices[1:])):
+        if x in spans: # str match?
+            tokens.append(src[x[0]:x[1]])
+        else:
+            tokens.extend(src[x[0]:x[1]].replace(LPAR, f" {LPAR} ").replace(RPAR, f" {RPAR} ").split())
+    return tokens
+    # return src.replace(LPAR, f" {LPAR} ").replace(RPAR, f" {RPAR} ").split()
+
+def index_tokens(tokens):
+    """
+    Mark openings and closings of lists, eg [[]] ->
+    [open0, open1, close1, close0]
+    """
+    L = []
+    i = 0
+    x = []
+    for tok in tokens:
+        if tok == LPAR:
+            L.append((tok, i))
+            i += 1
+        elif tok == RPAR:
+            i -= 1
+            L.append((tok, i))            
+        else:
+            L.append(tok)
+    # print(x)
+    return L
+
+def toplevel_exprs(indexed_tokens):
+    TL = []
+    L = []
+    # Track last bracket, we trash anything
+    # which comes AFTER the last toplevel closing bracket (ie (']', 0)).
+    # These are considered as toplevel comments!
+    last_bracket = None
+    for tok in indexed_tokens:
+        if isinstance(tok, tuple):
+            L.append(tok[0])
+            if tok[0] == RPAR and tok[1] == 0:
+                TL.append(L)
+                L = []
+            # Track if it's a bracket token.
+            last_bracket = tok
+        else:
+            if not last_bracket == (RPAR, 0): # not a comment
+                L.append(tok)
+    return TL
 
 
+def read_from_tokens(tokens):
+    "Read an expression from a sequence of tokens."
+    if len(tokens) == 0:
+        raise SyntaxError('unexpected EOF')
+    token = tokens.pop(0)
+    if token == LPAR:
+        L = []
+        while tokens[0] != RPAR:
+            L.append(read_from_tokens(tokens))
+        tokens.pop(0) # pop off ')'
+        return L
+    elif token == RPAR:
+        raise SyntaxError(f'unexpected {RPAR}')
+    else:
+        return atom(token)
 
-# print(pubattrs["note"], not callable(Note.addsvg))
-# print([x for x in dir(Note) if not x.startswith("_") and not inspect.isfunction(x)])
-# pattern = "\[[\w]\]"
-# print(re.fullmatch(pattern, "[note [pitch [+1 3]]]"))
+
+def atom(tok):
+    try: return int(tok)
+    except ValueError:
+        try: return float(tok)
+        except ValueError: return tok
+
+        
+
+if __name__ == "__main__":
+    s="""
+    Func Atom Atom
+        Func Atom Atom
+    Defn
+        Foo args+
+        ->
+            Fn x
+                x * 10
+            args
+    Defn Foo N
+        If
+            N = 0
+            1
+        Else
+            N * Foo N-1
+    
+    Set y 10
+    Call
+        *
+        10 10
+    *
+        10 10
+    Call
+        Fn
+            x\sy\sz\n
+            +\sx\sy\sz
+        1 2 3
+    
+    Fn x y x
+    
+    Fn
+        x \n
+        x
+    
+    Note
+      Pitch
+       "C#4"
+      Dur
+    Set n Note Pitch 3 Dur 4
+    Note
+        Pitch
+            Conc "C#4" Color 
+        Dur
+            + 2 3 4 5
+                * 3 4
+                    4 5 6
+    Staff
+        Cont
+            Clef
+                Name "Sol"
+            Time
+                num 
+                    3
+                denom
+                    4
+            note
+                pitch "C#4"
+                dur 4
+            note
+                pitch 60
+                dur 4
+            rest
+                dur 4
+    (? (& t t t t (= 2 2 2.0009) 0.2))
+    """
+    i=index_tokens(tokenize_source(s))
+    # print(read_from_tokens(tokenize_source(s)))
+    # print(i)
+    # print(listify(i,[]))
+    # print(toplevel_exprs(i))
+    
+    # print([listify(t, []) for t in toplevel_exprs(index_tokens(tokenize_source(s)))])
+    # t =toplevel_exprs(i)[0]
+    # print(read_from_tokens(t))
+    envt = make_env()
+    for e in toplevel_exprs(i):
+        # print(read_from_tokens(e))
+        evalexp(read_from_tokens(e), envt)
+        

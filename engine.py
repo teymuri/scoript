@@ -132,7 +132,10 @@ def descendants(obj, lastgen_first=True):
     return D
 
 
-def members(obj): return [obj] + descendants(obj, lastgen_first=False)
+def members(obj):
+    """returns a list containing the object itself and all it's children.
+    """
+    return [obj] + descendants(obj, lastgen_first=False)
 
 def getallin(typeof, obj):
     """Returns an iterable of all types in obj."""
@@ -151,6 +154,8 @@ class RuleTable:
     def __init__(self, name=None):
         self.name = name
         self.rules = dict()
+        # this order is the position where a rule was added to the
+        # table in a rule definition file (e.g. cmn.py)
         self._order = 0
         self.log = True # Print rules as they are being applied.
         self._hook_registry = []
@@ -158,39 +163,60 @@ class RuleTable:
         _ruletables.add(self)
     # def __repr__(self): return f"RuleTable {self.id}"
     def _pending(self):
-        """Returns a list of rules of this ruletable: (order, rule-dictionary)
-        which are pending for application. If nothing is pending 
+        """Returns a list of rules of this ruletable of the form:
+        (order, rule-dictionary)
+        which are pending (waiting) for application. If nothing is pending 
         [] is returned."""
         # o=order, rd=rule dict
         return [(o, rd) for (o, rd) in self.rules.items() if not rd["applied"]]
     
-    def add(self, hook, pred, desc=None):
+    def add(self, hook, pred, desc=None, aux=False):
         """
         Rule will be added only if at least one of hook or predicate are fresh.
         """
         hhash = hook.__hash__()
         phash = pred.__hash__()
-        if hhash not in self._hook_registry or phash not in self._pred_registry:
+        if hhash not in self._hook_registry or phash not in self._pred_registry or aux:
             self.rules[self._order] = {"desc": desc, "hook": hook, "pred": pred, "applied": False}
             self._order += 1
             self._hook_registry.append(hhash)
             self._pred_registry.append(phash)
-            
+        
+    def unsafeadd(self, hook,pred,desc="..."):
+        self.rules[self._order] = {"desc": desc,
+                                   "hook": hook,
+                                   "pred": pred,
+                                   "applied": False}
+        # next rule will be added at the next position, this order
+        # decides when the rule should be applied.
+        self._order +=1
+        
+    
     def __len__(self): return len(self.rules)
 
 
 # Common Music Notation, default ruletable for all objects
-cmn = RuleTable(name="CMN")
+_RT = cmn = COMMON_MUSIC_NOTATION = RuleTable(name="Common Music Notation")
+
+
+
+
+
+
 _registry = {}
 def getbyid(id_): return _registry[id_]
+
 class _SMTObject:
-    def __init__(self, id_=None, domain=None, ruletable=None, toplevel=False):
+    def __init__(self, id_=None, domain=None,
+                 ruletable=COMMON_MUSIC_NOTATION,
+                 toplevel=False):
         self.toplevel = toplevel
         self.ancestors = []
         self.id = id_ or self._assign_id()
         self._svg_list = []
         self.domain = domain
-        self.ruletable = ruletable or cmn
+        # self.ruletable = ruletable or cmn
+        self.ruletable = ruletable
         _registry[self.id] = self
 
     def _pack_svg_list_ip(self): self._notimplemented("_pack_svg_list_ip")
@@ -213,30 +239,42 @@ class _SMTObject:
     def _apply_rules(self):
         """
         Applies rules to self and all it's descendants.
-        A rule will look for application-targets exactly once per each 
+        A rule will look for application target objects exactly once per each 
         rule-application iteration. This means however that a rule might be applied
-        to an object more than once, if the object satisfies it's condition.
+        to an object more than once, if the object satisfies it's pred.
         """
         depth = -1
+        print("APPLYING RULES:")
         while True:
-            pending_rts = _pending_ruletables()
-            if pending_rts:
+            pending_rule_tables = _pending_ruletables()
+            if pending_rule_tables:
+                # Gehe eine Stufe tiefer rein, nach jedes Mal alle pendings 
+                # bearbeitet zu haben.
                 depth += 1
-                for rt in pending_rts:
+                for rt in pending_rule_tables:
                     # o_rd=(order, ruledictionary), sort pending rules based on their order.
                     for order, rule in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
                         if rt.log:
-                            print(f"RT: {rt.name}, Depth: {depth}, Order: {order}, Desc: {rule['desc']}")
+                            print(f"RT: {rt.name}, DEPTH: {depth}, ORDER: {order}, DESC: '{rule['desc']}'", end="")
                         # get in each round the up-to-date list of members (possibly new objects have been added etc....)
+                        applied_to_something = False
+                        if rt.log: print(", APPLIED:", end=" ")
                         for m in members(self):
                             if rule["pred"](m):
                                 rule["hook"](m)
+                                applied_to_something = True
+                                if rt.log: print("✓", end="")
                                 if isinstance(m, HForm): m._lineup() # Das untenstehende scheint sinvoller??!
                                 # for a in reversed(m.ancestors):
                                     # if isinstance(a, HForm): a._lineup()
-                        # A rule is applied not more than once!
+                        if not applied_to_something and rt.log:
+                            print("✘")
+                        elif applied_to_something and rt.log:
+                            print("") # just the new line for the check mark(s) above
+                        # A rule should not be applied more than once,
+                        # so tag it as being applied.
                         rule["applied"] = True
-                pending_rts = _pending_ruletables()
+                pending_rule_tables = _pending_ruletables()
             else: break
 
 
@@ -255,14 +293,15 @@ def page_size(use):
 PAGEH, PAGEW = page_size("largest")
 
 def render(*items):
-    D = SW.drawing.Drawing(filename="/tmp/smt.svg", size=(PAGEW, PAGEH), debug=True)
+    drawing = SW.drawing.Drawing(filename="/tmp/smt.svg",
+                                 size=(PAGEW, PAGEH), debug=True)
     for item in items:
         item._apply_rules()
         # Form's packsvglst will call packsvglst on descendants recursively
         item._pack_svg_list_ip()
         for elem in item._svg_list:
-            D.add(elem)
-    D.save(pretty=True)
+            drawing.add(elem)
+    drawing.save(pretty=True)
 
 
 class _Canvas(_SMTObject):
@@ -420,11 +459,13 @@ class _Observable(_Canvas):
     @top.setter
     def top(self, new): self.y += (new - self.top)
     
-        
+
+
+
 class MChar(_Observable, _Font):
     
     _idcounter = -1
-    
+
     def __init__(self, name, font=None, **kwargs):
         _Observable.__init__(self, **kwargs)
         _Font.__init__(self, font)
