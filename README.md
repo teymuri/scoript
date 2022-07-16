@@ -1,4 +1,4 @@
-# Semantic Music Typesetting
+# Symbolic Music Typesetting
 
 ## Thinking in Rules
 ### How to thinkg when I'm about to add new rules to a table
