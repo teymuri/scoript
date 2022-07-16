@@ -1,6 +1,7 @@
 # Semantic Music Typesetting
 
-## Thinking about new rules
+## Thinking in Rules
+### How to thinkg when I'm about to add new rules to a table
 Generally how defining new rules happens is as follows:
   1. What is the rule about, what is it it's doing, to which object it applies?
   2. At which moment in the engraving process should the rule be applied (i.e. be added/unsafeadded to the rule table)
