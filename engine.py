@@ -246,28 +246,35 @@ class _SMTObject:
         depth = -1
         print("APPLYING RULES:")
         while True:
-            pending_rts = _pending_ruletables()
-            if pending_rts:
+            pending_rule_tables = _pending_ruletables()
+            if pending_rule_tables:
                 # Gehe eine Stufe tiefer rein, nach jedes Mal alle pendings 
                 # bearbeitet zu haben.
                 depth += 1
-                for rt in pending_rts:
+                for rt in pending_rule_tables:
                     # o_rd=(order, ruledictionary), sort pending rules based on their order.
                     for order, rule in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
                         if rt.log:
-                            print(f"RT: {rt.name}, DEPTH: {depth}, ORDER: {order}, DESC: {rule['desc']}")
+                            print(f"RT: {rt.name}, DEPTH: {depth}, ORDER: {order}, DESC: '{rule['desc']}'", end="")
                         # get in each round the up-to-date list of members (possibly new objects have been added etc....)
+                        applied_to_something = False
+                        if rt.log: print(", APPLIED:", end=" ")
                         for m in members(self):
                             if rule["pred"](m):
                                 rule["hook"](m)
+                                applied_to_something = True
+                                if rt.log: print("✓", end="")
                                 if isinstance(m, HForm): m._lineup() # Das untenstehende scheint sinvoller??!
                                 # for a in reversed(m.ancestors):
                                     # if isinstance(a, HForm): a._lineup()
-                        
+                        if not applied_to_something and rt.log:
+                            print("✘")
+                        elif applied_to_something and rt.log:
+                            print("") # just the new line for the check mark(s) above
                         # A rule should not be applied more than once,
                         # so tag it as being applied.
                         rule["applied"] = True
-                pending_rts = _pending_ruletables()
+                pending_rule_tables = _pending_ruletables()
             else: break
 
 
