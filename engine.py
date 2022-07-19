@@ -186,7 +186,7 @@ class RuleTable:
             self._hook_registry.append(hhash)
             self._pred_registry.append(phash)
         
-    def unsafeadd(self, hook,pred,desc="..."):
+    def unsafeadd(self, hook, pred, desc=""):
         self.rules[self._order] = {"desc": desc,
                                    "hook": hook,
                                    "pred": pred,
@@ -194,13 +194,18 @@ class RuleTable:
         # next rule will be added at the next position, this order
         # decides when the rule should be applied.
         self._order +=1
-        
+
+    @classmethod
+    def reset(cls):
+        for rule_table in cls.RULE_TABLES:
+            for rule in rule_table.rules.values():
+                rule["applied"] = False
     
     def __len__(self): return len(self.rules)
 
 
 # Common Music Notation, default ruletable for all objects
-_RT = CMN = COMMON_MUSIC_NOTATION = RuleTable(name="Common Music Notation")
+_RT = CMN = COMMON_MUSIC_NOTATION = RuleTable(name="CMN")
 
 
 
@@ -251,6 +256,7 @@ class _SMTObject:
         """
         depth = -1
         print("APPLYING RULES:")
+        RuleTable.reset()
         while True:
             # pending_rule_tables = _pending_rule_tables()
             pending_rule_tables = RuleTable.pending_rule_tables()
@@ -283,8 +289,9 @@ class _SMTObject:
                         # A rule should not be applied more than once,
                         # so tag it as being applied.
                         rule["applied"] = True
-                pending_rule_tables = _pending_rule_tables()
-            else: break
+                # pending_rule_tables = RuleTable.pending_rule_tables()
+            else:
+                break
 
 
 ############ page formats
@@ -316,14 +323,21 @@ def render(*items):
 
 
 class _Canvas(_SMTObject):
-    def __init__(self, canvas_color=None,
-    canvas_opacity=None, xscale=1, yscale=1,
-    x=None, y=None,
-     # x_locked=False, y_locked=False,
-    rotate=0, skewx=0, skewy=0,
-    width=None, height=None,
-     # width_locked=False,
-    canvas_visible=True, origin_visible=True, **kwargs):
+    def __init__(self,
+                 canvas_color=None,
+                 canvas_opacity=None,
+                 xscale=1,
+                 yscale=1,
+                 x=None,
+                 y=None,
+                 rotate=0,
+                 skewx=0,
+                 skewy=0,
+                 width=None,
+                 height=None,
+                 canvas_visible=True,
+                 origin_visible=True,
+                 **kwargs):
         super().__init__(**kwargs)
         self.skewx = skewx
         self.skewy = skewy

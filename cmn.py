@@ -11,8 +11,12 @@ def is_simple_timesig(x): return isinstance(x, S.SimpleTimeSig)
 def make_simple_timesig(ts):
     """this is the ultimate, the one and the only guy putting
     together and punching time sigs"""
-    ts.num_punch=S.E.MChar({3: "three", 4:"four", 5:"five"}.get(ts.num, ".notdef"))
-    ts.denom_punch=S.E.MChar({4: "four", 2:"two", 1: "one"}.get(ts.denom, ".notdef"))
+    ts.num_punch=S.E.MChar({3: "three", 4:"four", 5:"five"}.get(ts.num, ".notdef"),
+                           canvas_visible=False,
+                           origin_visible=False)
+    ts.denom_punch=S.E.MChar({4: "four", 2:"two", 1: "one"}.get(ts.denom, ".notdef"),
+                             canvas_visible=False,
+                             origin_visible=False)
     # I'm shifting the 1 here because I know the font's properties?
     if ts.denom == 1:
         d=ts.denom_punch.parent().width - ts.denom_punch.width
@@ -33,7 +37,9 @@ def make_notehead(note):
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2",
-        }[note.duration])
+        }[note.duration],
+                                    canvas_visible=False,
+                                    origin_visible=False)
     # elif isinstance(note.duration, (float, int)):
         # note.head_punch = S.E.MChar(name={
             # 1: "noteheads.s0",
@@ -50,11 +56,10 @@ def setstem(self):
     if self.duration in (.25, .5, "q", "h", "8"):
         # self.stem_graver = S.E._LineSeg(x2=0, y2=10,thickness=2)
         s=S.Stem(length=20,thickness=1, 
-        # color=S.E.SW.utils.rgb(0,50,0,"%"),
-        x=self.x+.5, # Eigentlich wenn wir dieses X eingeben, es wird als absolut-X gesehen.
-        y=self.head_punch.y,
-        endyr=1,endxr=1,rotate=0,
-        origin_visible=0)
+                 x=self.x+.5, # Eigentlich wenn wir dieses X eingeben, es wird als absolut-X gesehen.
+                 y=self.head_punch.y,
+                 endyr=1,endxr=1,rotate=0,
+                 origin_visible=False, canvas_visible=False)
         self.stem_graver = s #taze , appliedto =false
 
 def notehead_vertical_pos(note):
@@ -70,12 +75,14 @@ def notehead_vertical_pos(note):
 
 def make_accidental_char(accobj):
     if not accobj.punch:
-        accobj.punch = S.E.MChar(name="accidentals.sharp")
+        accobj.punch = S.E.MChar(name="accidentals.sharp", canvas_visible=False,
+                     origin_visible=False)
 
 def setclef(clefobj):
     clefobj.punch = S.E.MChar(name={"g": "clefs.G", 1:"clefs.C",
-    "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
-    rotate=0,)
+                                    "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
+                              rotate=0, canvas_visible=False,
+                              origin_visible=False)
 
 ############################# punctuation
 
@@ -169,7 +176,7 @@ test
 # score.
 S.E.CMN.unsafeadd(make_simple_timesig,is_simple_timesig,"Set Time...",)
 S.E.CMN.unsafeadd(make_notehead, noteandtreble, "make noteheads",)
-S.E.CMN.unsafeadd(notehead_vertical_pos, noteandtreble, "????")
+S.E.CMN.unsafeadd(notehead_vertical_pos, noteandtreble, "note vertical position")
 S.E.CMN.unsafeadd(make_accidental_char, isacc, "Making Accidental Characters",)
 # e.CMN.unsafeadd(greenhead, noteandtreble)
 S.E.CMN.unsafeadd(setstem, isnote, "Set stems",)
@@ -212,7 +219,9 @@ def addstaff(n):
     x=5
     h=n.FIXHEIGHT / (x-1)
     for i in range(x):
-        l=S.E.HLineSeg(length=n.width, thickness=1, y=i*h + n.top)
+        l=S.E.HLineSeg(length=n.width, thickness=1, y=i*h + n.top,
+                       canvas_visible=False,
+                       origin_visible=False)
         n.append(l)
         # S.E.CMN.add(rescale, pred(obj, isinstance(obj, int)), "Reset acc xscale.")
         # print(S.E.CMN.rules.keys())
@@ -284,27 +293,25 @@ class System(S.E.HForm):
     # return S.E.SForm(content=S.E.MChar(n["name"]))
 # print(sethead(note(0,1,name="noteheads.s0")))
 if __name__=="__main__":
-    
-    s1=System(
-        [
-            S.Clef(pitch="g", canvas_visible=False),            
-            S.SimpleTimeSig(denom=1),
+    ns = (5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
+    W = 270
+    hs = []
+    for x in range(22):
+        h = S.E.HForm(content=[
+            S.Clef(pitch=choice(("g", "f")), canvas_visible=False, origin_visible=False),
+            S.SimpleTimeSig(denom=1, canvas_visible=False,origin_visible=False),
             *[S.Note(domain="treble",
                      duration=choice(["q", "h", "w"]),
-                     pitch=[choice(["c", "d"]), 5]) for _ in range(20)]
+                     pitch=[choice(["c", "d"]), 5],
+                     canvas_visible=False,
+                     origin_visible=False)
+              for _ in range(choice(ns))]
         ],
-        width=S.E.mmtopx(200), x=20, y=100)
+                      width=S.E.mmtopx(W),
+                      x=20,
+                      y=60 + x * 70,
+                      canvas_visible=False,
+                      origin_visible=False)
+        hs.append(h)
     
-    h1 = S.E.HForm(content=[
-        S.Clef(pitch="f", canvas_visible=False),            
-        S.SimpleTimeSig(denom=1),
-        *[S.Note(domain="treble",
-                 duration=choice(["q", "h", "w"]),
-                 pitch=[choice(["c", "d"]), 5]) for _ in range(20)]
-    ],
-                   width=S.E.mmtopx(200),
-                   x=20,
-                   y=110)
-    
-    # S.E.render(s1)
-    S.E.render(s1,h1)
+    S.E.render(*hs)
