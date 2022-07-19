@@ -142,33 +142,37 @@ def getallin(typeof, obj):
     return filter(lambda O: isinstance(O, typeof), members(obj))
 
 
-############# Rules
-_ruletables = set()
+############# deprecated, remove
+_ruletables = set()             # put this as class var in RuleTable?
 
-def _pending_ruletables():
+def _pending_rule_tables():
     """True if there some ruletables with pending rules."""
-    return [rt for rt in _ruletables if rt._pending()]
-
+    return [rt for rt in _ruletables if rt.is_pending()]
+###############
 class RuleTable:
-    
+    RULE_TABLES = set()
     def __init__(self, name=None):
         self.name = name
         self.rules = dict()
         # this order is the position where a rule was added to the
         # table in a rule definition file (e.g. cmn.py)
         self._order = 0
-        self.log = True # Print rules as they are being applied.
+        self.log = True # Print rule's info as they are being applied.
         self._hook_registry = []
         self._pred_registry = []
-        _ruletables.add(self)
+        # _ruletables.add(self)
+        RuleTable.RULE_TABLES.add(self)
     # def __repr__(self): return f"RuleTable {self.id}"
-    def _pending(self):
+    def is_pending(self):       # this name is bullshit (not a bool)!!!
         """Returns a list of rules of this ruletable of the form:
-        (order, rule-dictionary)
+        (order, rule dictionary)
         which are pending (waiting) for application. If nothing is pending 
         [] is returned."""
         # o=order, rd=rule dict
         return [(o, rd) for (o, rd) in self.rules.items() if not rd["applied"]]
+    @classmethod
+    def pending_rule_tables(cls):
+        return [rt for rt in RuleTable.RULE_TABLES if rt.is_pending()]
     
     def add(self, hook, pred, desc=None, aux=False):
         """
@@ -196,7 +200,7 @@ class RuleTable:
 
 
 # Common Music Notation, default ruletable for all objects
-_RT = cmn = COMMON_MUSIC_NOTATION = RuleTable(name="Common Music Notation")
+_RT = CMN = COMMON_MUSIC_NOTATION = RuleTable(name="Common Music Notation")
 
 
 
@@ -208,6 +212,8 @@ def getbyid(id_): return _registry[id_]
 
 class _SMTObject:
     def __init__(self, id_=None, domain=None,
+                 # We use the Common Music Notation as default rule
+                 # table.
                  ruletable=COMMON_MUSIC_NOTATION,
                  toplevel=False):
         self.toplevel = toplevel
@@ -215,7 +221,7 @@ class _SMTObject:
         self.id = id_ or self._assign_id()
         self._svg_list = []
         self.domain = domain
-        # self.ruletable = ruletable or cmn
+        # self.ruletable = ruletable or COMMON_MUSIC_NOTATION
         self.ruletable = ruletable
         _registry[self.id] = self
 
@@ -238,7 +244,7 @@ class _SMTObject:
     
     def _apply_rules(self):
         """
-        Applies rules to self and all it's descendants.
+        Applies rules to this smt object and all it's descendants.
         A rule will look for application target objects exactly once per each 
         rule-application iteration. This means however that a rule might be applied
         to an object more than once, if the object satisfies it's pred.
@@ -246,20 +252,23 @@ class _SMTObject:
         depth = -1
         print("APPLYING RULES:")
         while True:
-            pending_rule_tables = _pending_ruletables()
+            # pending_rule_tables = _pending_rule_tables()
+            pending_rule_tables = RuleTable.pending_rule_tables()
             if pending_rule_tables:
                 # Gehe eine Stufe tiefer rein, nach jedes Mal alle pendings 
                 # bearbeitet zu haben.
                 depth += 1
                 for rt in pending_rule_tables:
                     # o_rd=(order, ruledictionary), sort pending rules based on their order.
-                    for order, rule in sorted(rt._pending(), key=lambda o_rd: o_rd[0]):
+                    for order, rule in sorted(rt.is_pending(), key=lambda o_rd: o_rd[0]):
                         if rt.log:
-                            print(f"RT: {rt.name}, DEPTH: {depth}, ORDER: {order}, DESC: '{rule['desc']}'", end="")
+                            print(f"RT: {rt.name}, DEPTH: {depth}, ORDER: {order}, DESC: '{rule['desc']}'", end=" ")
                         # get in each round the up-to-date list of members (possibly new objects have been added etc....)
                         applied_to_something = False
-                        if rt.log: print(", APPLIED:", end=" ")
+                        # if rt.log: print(", APPLIED:", end=" ")
                         for m in members(self):
+                            # Call the predicate function to decide
+                            # whether to apply the rule or not.
                             if rule["pred"](m):
                                 rule["hook"](m)
                                 applied_to_something = True
@@ -274,7 +283,7 @@ class _SMTObject:
                         # A rule should not be applied more than once,
                         # so tag it as being applied.
                         rule["applied"] = True
-                pending_rule_tables = _pending_ruletables()
+                pending_rule_tables = _pending_rule_tables()
             else: break
 
 
@@ -293,6 +302,8 @@ def page_size(use):
 PAGEH, PAGEW = page_size("largest")
 
 def render(*items):
+    """score items
+    """
     drawing = SW.drawing.Drawing(filename="/tmp/smt.svg",
                                  size=(PAGEW, PAGEH), debug=True)
     for item in items:
@@ -641,7 +652,6 @@ class _Form(_Canvas, _Font):
         self.fixtop = self.y + toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
         self.fixbottom = self.y + toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
         self.FIXHEIGHT = toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
-        
         
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
