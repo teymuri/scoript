@@ -1,11 +1,14 @@
-
 import sys
+import os
 
-sys.path.insert(0,"/home/amir/Work/smt/smt/")
-
-from engine import (RuleTable, render, HForm)
-from cmn import (is_simple_timesig, make_simple_timesig)
-from score import (SimpleTimeSig)
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+SMT_DIR = os.path.dirname(TEST_DIR)
+if SMT_DIR not in sys.path:
+    sys.path.append(SMT_DIR)
+from random import choice
+from engine import (RuleTable, render, HForm, mm_to_pix)
+from rules.cmn import (is_simple_timesig, make_simple_timesig)
+from score import (SimpleTimeSig, Clef, Note)
 
 if __name__=="__main__":
     ns = (5, 10, 15, 20, 25, 30, 35, 40, 45, 50)

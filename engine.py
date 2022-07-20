@@ -56,8 +56,10 @@ def install_font1(path, overwrite=False):
 _loaded_fonts = {}
 
 def _load_fonts():
-    for json_file in os.listdir("./fonts/json"):        
-        with open(f"./fonts/json/{json_file}") as font:
+    smt_dir = os.path.dirname(os.path.abspath(__file__))
+    json_dir = smt_dir + "/fonts/json"
+    for json_file in os.listdir(json_dir):
+        with open(f"{json_dir}/{json_file}") as font:
             _loaded_fonts[os.path.splitext(json_file)[0]] = json.load(font)
 
 
