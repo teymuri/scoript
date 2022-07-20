@@ -78,24 +78,30 @@ STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
 
 
 ##### Rastral, Dimensions, Margins
-_PXLPERMM = 3.7795275591 # Pixel per mm
-def mmtopx(mm): return mm * _PXLPERMM
+
+# 1 mm = 3.7795275591 pixels
+MM_PIX_FACTOR = 3.7795275591
+
+def mm_to_pix(mm):
+    """Converts mm to pixels. 
+    """
+    return mm * MM_PIX_FACTOR
 
 def gould_rastral_height(rastral_number):
     """Behind Bars, pg. 482-3:
     The rastral height is the measurement of one staff-space.
     """
     return {
-        "zero": mmtopx(9.2*.25), "one": mmtopx(7.9*.25), "two": mmtopx(7.4*.25),
-        "three": mmtopx(7*.25), "four": mmtopx(6.5*.25), "five": mmtopx(6*.25),
-        "six": mmtopx(5.5*.25), "seven": mmtopx(4.8*.25), "eight": mmtopx(3.7*.25)
+        "zero": mm_to_pix(9.2*.25), "one": mm_to_pix(7.9*.25), "two": mm_to_pix(7.4*.25),
+        "three": mm_to_pix(7*.25), "four": mm_to_pix(6.5*.25), "five": mm_to_pix(6*.25),
+        "six": mm_to_pix(5.5*.25), "seven": mm_to_pix(4.8*.25), "eight": mm_to_pix(3.7*.25)
     }[rastral_number]
 
 def chlapik_rastral_height(rastral_number):
     return {
-    "zwei": mmtopx(1.88), "drei": mmtopx(1.755), "vier": mmtopx(1.6),
-    "fuenf": mmtopx(1.532), "sechs": mmtopx(1.4), "sieben": mmtopx(1.19),
-    "acht": mmtopx(1.02)}[rastral_number]
+    "zwei": mm_to_pix(1.88), "drei": mm_to_pix(1.755), "vier": mm_to_pix(1.6),
+    "fuenf": mm_to_pix(1.532), "sechs": mm_to_pix(1.4), "sieben": mm_to_pix(1.19),
+    "acht": mm_to_pix(1.02)}[rastral_number]
 
 
 # STAFF_SPACE = chlapik_rastral_height("fuenf")
@@ -108,8 +114,8 @@ def _scale():
 
 def toplevel_scale(R): return R * _scale()
 
-_LEFT_MARGIN = mmtopx(36)
-_TOP_MARGIN = mmtopx(56)
+_LEFT_MARGIN = mm_to_pix(36)
+_TOP_MARGIN = mm_to_pix(56)
 
 
 
@@ -299,11 +305,11 @@ def page_size(use):
     """Behind Bards, pg. 481, portrait formats (height, width)
     largest (A3) = Largest practical """
     return {
-        "largest": (mmtopx(420), mmtopx(297)), 
-        "largest_instrumental": (mmtopx(353), mmtopx(250)),
-        "smallest_instrumental": (mmtopx(297), mmtopx(210)),
-        "printed_sheet_music": (mmtopx(305), mmtopx(229)),
-        "printed_choral_music": (mmtopx(254), mmtopx(178))
+        "largest": (mm_to_pix(420), mm_to_pix(297)), 
+        "largest_instrumental": (mm_to_pix(353), mm_to_pix(250)),
+        "smallest_instrumental": (mm_to_pix(297), mm_to_pix(210)),
+        "printed_sheet_music": (mm_to_pix(305), mm_to_pix(229)),
+        "printed_choral_music": (mm_to_pix(254), mm_to_pix(178))
     }[use]
 
 PAGEH, PAGEW = page_size("largest")

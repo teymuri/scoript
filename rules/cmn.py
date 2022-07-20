@@ -284,7 +284,7 @@ class System(S.E.HForm):
         S.E.HForm.__init__(self, content=cnt, **kw, canvas_visible=False,)
 # s=SForm(width=5,width_locked=0,x=50)
 # s.append(Stem(length=10,thickness=30))
-# h=HForm(content=[s],width=mmtopx(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
+# h=HForm(content=[s],width=mm_to_pix(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
 # F=S.E.RuleTable()
 # def note(pitch, dur, **kwargs):
     # return {"type": "note", "pitch":pitch, "dur":dur,**kwargs}
@@ -307,7 +307,7 @@ if __name__=="__main__":
                      origin_visible=False)
               for _ in range(choice(ns))]
         ],
-                      width=S.E.mmtopx(W),
+                      width=S.E.mm_to_pix(W),
                       x=20,
                       y=60 + x * 70,
                       canvas_visible=False,
