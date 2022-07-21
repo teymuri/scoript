@@ -69,13 +69,18 @@ _load_fonts()
 def glyph_names(font):
     return _loaded_fonts[font].keys()
 
-def _get_glyph(name, font): return _loaded_fonts[font][name]
+def _get_glyph(name, font):
+    return _loaded_fonts[font][name]
 # print(_loaded_fonts)
 
 
 # ################################
 # _fonts = {}
 # current_font = "Haydn"
+
+# We use the height of the alto clef as the reference for the height
+# of the staff. Note that this name should exist in the font we are
+# using.
 STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
 
 
@@ -114,7 +119,8 @@ def _scale():
     # return GLOBAL_SCALE * ((4 * STAFF_SPACE) / _getglyph("clefs.C", "Haydn")["height"])
     return GLOBAL_SCALE * ((4 * STAFF_SPACE) / _get_glyph("clefs.C", "haydn-11")["height"])
 
-def toplevel_scale(R): return R * _scale()
+def toplevel_scale(r):
+    return r * _scale()
 
 _LEFT_MARGIN = mm_to_pix(36)
 _TOP_MARGIN = mm_to_pix(56)
