@@ -62,15 +62,17 @@ def setstem(self):
                  origin_visible=False, canvas_visible=False)
         self.stem_graver = s #taze , appliedto =false
 
-def notehead_vertical_pos(note):
-    if isinstance(note.pitch, list):
-        p = note.pitch[0]
-        okt = note.pitch[1]
-        note.head_punch.y = ((note.fixbottom - {
-            "c":-S.E.STAFF_SPACE, 
-            "d":-(.5 * S.E.STAFF_SPACE),
-            
-        }[p]) + ((4 - okt) * 7/8 * note.FIXHEIGHT))
+def notehead_vertical_pos(note_obj):
+    if isinstance(note_obj.pitch, list):
+        p = note_obj.pitch[0]
+        okt = note_obj.pitch[1]
+        note_obj.head_punch.y = ((note_obj.fixbottom - {
+            "a": -(2 * S.E.STAFF_SPACE),
+            "b": -(1.5 * S.E.STAFF_SPACE),
+            "c": -(1 * S.E.STAFF_SPACE), 
+            "d": -(0.5 * S.E.STAFF_SPACE),
+            "x": -(0 * S.E.STAFF_SPACE),
+        }[p]) + ((4 - okt) * 7/8 * note_obj.FIXHEIGHT))
 
 
 def make_accidental_char(accobj):

@@ -12,18 +12,19 @@ from score import (SimpleTimeSig, Clef, Note)
 
 if __name__=="__main__":
     ns = (5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
+    durs = ("q", "q", "h", "w", "q", "h", "q", "w", "w", "q", "q", "q", "q")
     W = 270
     hs = []
-    for x in range(1):
+    for x in range(2):
         h = HForm(content=[
             Clef(pitch=choice(("g", "f")), canvas_visible=False, origin_visible=False),
             SimpleTimeSig(denom=1, canvas_visible=False,origin_visible=False),
             *[Note(domain="treble",
-                     duration=choice(["q", "h", "w"]),
-                     pitch=[choice(["c", "d"]), 5],
+                     duration=dur,
+                     pitch=[choice(["c", "d", "b", "a","x"]), 5],
                      canvas_visible=False,
                      origin_visible=False)
-              for _ in range(choice(ns))]
+              for dur in durs]
         ],
                       width=mm_to_pix(W),
                       x=20,
