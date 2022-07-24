@@ -17,7 +17,7 @@ from math import atan2, hypot
 
 ##### Font
 
-_SVGNS = {"ns": "http://www.w3.org/2000/svg"}
+SVG_NAMESPACE = {"ns": "http://www.w3.org/2000/svg"}
 # _fontsdict = {}
 # installed_fonts = []
 def install_font1(path, overwrite=False):
@@ -29,8 +29,8 @@ def install_font1(path, overwrite=False):
         D[name] = {}
         if ext == ".svg":
             with open(f"./fonts/json/{name}.json", "w") as file_:
-                font = ET.parse(path).getroot().find("ns:defs", _SVGNS).find("ns:font", _SVGNS)
-                for glyph in font.findall("ns:glyph", _SVGNS):
+                font = ET.parse(path).getroot().find("ns:defs", SVG_NAMESPACE).find("ns:font", SVG_NAMESPACE)
+                for glyph in font.findall("ns:glyph", SVG_NAMESPACE):
                     try:
                         path = SE.Path(glyph.attrib["d"], transform="scale(1 -1)")
                         # .scaled(sx=1, sy=-1)
@@ -105,22 +105,33 @@ def gould_rastral_height(rastral_number):
     }[rastral_number]
 
 def chlapik_rastral_height(rastral_number):
+    """Die Praxis des Notengraphikers, pg. 32
+    """
     return {
     "zwei": mm_to_pix(1.88), "drei": mm_to_pix(1.755), "vier": mm_to_pix(1.6),
     "fuenf": mm_to_pix(1.532), "sechs": mm_to_pix(1.4), "sieben": mm_to_pix(1.19),
     "acht": mm_to_pix(1.02)}[rastral_number]
 
 
-# STAFF_SPACE = chlapik_rastral_height("fuenf")
-STAFF_SPACE = gould_rastral_height("zero")
-GLOBAL_SCALE = 1.0
-# print(_get_glyph("clefs.C", "haydn-11"))
-def _scale():
-    # return GLOBAL_SCALE * ((4 * STAFF_SPACE) / _getglyph("clefs.C", "Haydn")["height"])
-    return GLOBAL_SCALE * ((4 * STAFF_SPACE) / _get_glyph("clefs.C", "haydn-11")["height"])
 
-def toplevel_scale(r):
-    return r * _scale()
+STAFF_SPACE = gould_rastral_height("zero")
+GLOBAL_SCALE_FACTOR = 1.0
+
+# def _toplevel_scaler():
+#     return GLOBAL_SCALE_FACTOR * ((4 * STAFF_SPACE) / _get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH,
+#                                                                    "haydn-11")["height"])
+
+def scale_by_staff_height_factor(r, global_factor=GLOBAL_SCALE_FACTOR):
+    """Scales the number r by the chosen staff's height. Staff height
+    factor is the ratio between the desired height of our staff and
+    the height of the reference glyph (which is normally the alto
+    clef, as described by Chlapik pg. 33). The global scale factor is
+    present to let us control this factor globally for all objects.
+
+    """
+    staff_height_factor = (4 * STAFF_SPACE) / _get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH,
+                                                         "haydn-11")["height"]
+    return r * global_factor * staff_height_factor
 
 _LEFT_MARGIN = mm_to_pix(36)
 _TOP_MARGIN = mm_to_pix(56)
@@ -237,7 +248,7 @@ class _SMTObject:
                  toplevel=False):
         self.toplevel = toplevel
         self.ancestors = []
-        self.id = id_ or self._assign_id()
+        self.id = id_ or self.assign_id()
         self._svg_list = []
         self.domain = domain
         # self.ruletable = ruletable or COMMON_MUSIC_NOTATION
@@ -250,9 +261,9 @@ class _SMTObject:
         """Crashs if the derived class hasn't implemented this important method."""
         raise NotImplementedError(f"{self.__class__.__name__} must override {method_name}!")
     
-    def _assign_id(self):
-        id_ = f"{self.__class__.__name__}{self.__class__._idcounter}"
-        self.__class__._idcounter += 1
+    def assign_id(self):
+        id_ = f"{self.__class__.__name__}{self.__class__.id_counter}"
+        self.__class__.id_counter += 1
         return id_
 
     def addsvg(self, *elements):
@@ -322,11 +333,10 @@ def page_size(use):
 
 PAGEH, PAGEW = page_size("largest")
 
-def render(*items):
+def render(*items, path="/tmp/smt"):
     """score items
     """
-    drawing = SW.drawing.Drawing(filename="/tmp/smt.svg",
-                                 size=(PAGEW, PAGEH), debug=True)
+    drawing = SW.drawing.Drawing(filename=path, size=(PAGEW, PAGEH), debug=True)
     for item in items:
         item._apply_rules()
         # Form's packsvglst will call packsvglst on descendants recursively
@@ -334,6 +344,7 @@ def render(*items):
         for elem in item._svg_list:
             drawing.add(elem)
     drawing.save(pretty=True)
+    print("wrote to " + path)
 
 
 class _Canvas(_SMTObject):
@@ -503,7 +514,7 @@ class _Observable(_Canvas):
 
 class MChar(_Observable, _Font):
     
-    _idcounter = -1
+    id_counter = 0
 
     def __init__(self, name, font=None, **kwargs):
         _Observable.__init__(self, **kwargs)
@@ -569,22 +580,22 @@ class MChar(_Observable, _Font):
         # raise Exception("MChar's width is immutable!")
 
     # def _compute_left(self):
-        # return self.x + toplevel_scale(self.glyph["left"])
+        # return self.x + scale_by_staff_height_factor(self.glyph["left"])
 
     # def _compute_right(self):
-        # return self.x + toplevel_scale(self.glyph["right"])
+        # return self.x + scale_by_staff_height_factor(self.glyph["right"])
 
     # def _compute_width(self):
-        # return toplevel_scale(self.glyph["width"])
+        # return scale_by_staff_height_factor(self.glyph["width"])
     
     # def _compute_top(self):
-        # return self.y + toplevel_scale(self.glyph["top"])
+        # return self.y + scale_by_staff_height_factor(self.glyph["top"])
     
     # def _compute_bottom(self):
-        # return self.y + toplevel_scale(self.glyph["bottom"])
+        # return self.y + scale_by_staff_height_factor(self.glyph["bottom"])
     
     # def _compute_height(self):
-        # return toplevel_scale(self.glyph["height"])
+        # return scale_by_staff_height_factor(self.glyph["height"])
     
     # def _pack_svg_list_ip(self):
         # # Add bbox rect
@@ -595,7 +606,7 @@ class MChar(_Observable, _Font):
         # id_=self.id, fill=self.color, fill_opacity=self.opacity,
         
         # transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
-        # self.x, self.y, self.xscale * _scale(), self.yscale * _scale())
+        # self.x, self.y, self.xscale * _toplevel_scaler(), self.yscale * _toplevel_scaler())
         
         
         # ))
@@ -617,7 +628,7 @@ class MChar(_Observable, _Font):
             d=self._path().d(), id_=self.id,
             fill=self.color, fill_opacity=self.opacity,
             # transform="translate({0} {1}) scale({2} {3})".format(
-                # self.x, self.y, self.xscale * _scale(), self.yscale * _scale())
+                # self.x, self.y, self.xscale * _toplevel_scaler(), self.yscale * _toplevel_scaler())
         ))
         # Add the origin
         if self.origin_visible:
@@ -627,13 +638,14 @@ class MChar(_Observable, _Font):
     # svgelements
     def _path(self):
         path = SE.Path(self._glyph)
-        path *= f"scale({self.xscale * _scale()}, {self.yscale * _scale()})"
+        # path *= f"scale({self.xscale * _toplevel_scaler()}, {self.yscale * _toplevel_scaler()})"
+        path *= f"scale({scale_by_staff_height_factor(self.xscale)}, {scale_by_staff_height_factor(self.yscale)})"
         # First rotate at 00,
         path *= f"rotate({self.rotate}deg)"
         # then move.
         path *= f"translate({self.x}, {self.y})"
         return path
-        # return SE.Path(self._glyph, transform=f"rotate({self.rotate}) scale({self.xscale*_scale()} {self.yscale*_scale()})")
+        # return SE.Path(self._glyph, transform=f"rotate({self.rotate}) scale({self.xscale*_toplevel_scaler()} {self.yscale*_toplevel_scaler()})")
     
     # svgelements bbox seems to have a bug getting bboxes of transformed (rotated) paths,
     # use svgpathtools bbox instead (xmin, xmax, ymin, ymax).
@@ -662,7 +674,7 @@ class MChar(_Observable, _Font):
 
 class _Form(_Canvas, _Font):
 
-    _idcounter = 0
+    id_counter = 0
 
     def __init__(self, font=None, content=None, **kwargs):
         self.content = content or []
@@ -673,13 +685,10 @@ class _Form(_Canvas, _Font):
         # should never change, except with when the parent is shifted, they move along of course!
         # In fix-top & bottom is the values of x-offset and possibly absolute x included (self.y).
         
-        # self.fixtop = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        # self.fixbottom = self.y + toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
-        # self.FIXHEIGHT = toplevel_scale(_getglyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
-        # print(">>>", self.id, toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"]))
-        self.fixtop = self.y + toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        self.fixbottom = self.y + toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
-        self.FIXHEIGHT = toplevel_scale(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
+        # print(">>>", self.id, scale_by_staff_height_factor(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"]))
+        self.fixtop = self.y + scale_by_staff_height_factor(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        self.fixbottom = self.y + scale_by_staff_height_factor(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        self.FIXHEIGHT = scale_by_staff_height_factor(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
@@ -960,7 +969,7 @@ class VForm(_Form):
 # https://github.com/meerk40t/svgelements/issues/102
 class _LineSeg(_Observable):
     """Angle in degrees"""
-    _idcounter = -1
+    id_counter = 0
     def __init__(self, length=None, direction=None, thickness=None, angle=None, endxr=None, endyr=None,
     # start=None, end=None,
     **kwargs):

@@ -2,6 +2,7 @@
 """
 
 from random import randint, choice
+from engine import STAFF_SPACE, MChar
 import score as S
 import copy 
 
@@ -63,16 +64,34 @@ def setstem(self):
         self.stem_graver = s #taze , appliedto =false
 
 def notehead_vertical_pos(note_obj):
+    """note_obj is a form; it's fixbottom is the bottom of a clefs.C
+    (i.e. bottom edge of a staff height). To find the vertical
+    position of the notehead I set it's y (which is originally placed
+    in the middle of the clefs.C i.e. the middle staff line) to be the
+    bottom edge of the SForm (fixbottom) + 1 staff space to get C4,
+    half staff space to get D4, 0 staff spaces to get the E4 etc. Not
+    that towards top the page we are decreasing, while towards bottom
+    of the page we increase the y coordinate. The rest is to replace
+    the result of aforementioned calculations be a certian amount
+    (offset_by_oct below) to transpose to other octaves.
+
+    """
     if isinstance(note_obj.pitch, list):
         p = note_obj.pitch[0]
         okt = note_obj.pitch[1]
-        note_obj.head_punch.y = ((note_obj.fixbottom - {
-            "a": -(2 * S.E.STAFF_SPACE),
-            "b": -(1.5 * S.E.STAFF_SPACE),
-            "c": -(1 * S.E.STAFF_SPACE), 
-            "d": -(0.5 * S.E.STAFF_SPACE),
-            "x": -(0 * S.E.STAFF_SPACE),
-        }[p]) + ((4 - okt) * 7/8 * note_obj.FIXHEIGHT))
+        # content of octave 4
+        pos_on_staff = note_obj.fixbottom + {
+            "c": 1 * S.E.STAFF_SPACE,
+            "d": 0.5 * S.E.STAFF_SPACE,
+            "e": 0 * S.E.STAFF_SPACE,
+            "f": -0.5 * STAFF_SPACE,
+            "g": -1 * STAFF_SPACE,
+            "a": -1.5 * STAFF_SPACE,
+            "b": -2 * STAFF_SPACE
+        }[p]
+        offset_by_oct = (4 - okt) * 7/8 * note_obj.FIXHEIGHT
+        note_obj.head_punch.y = pos_on_staff + offset_by_oct
+
 
 
 def make_accidental_char(accobj):
@@ -81,10 +100,13 @@ def make_accidental_char(accobj):
                      origin_visible=False)
 
 def setclef(clefobj):
-    clefobj.punch = S.E.MChar(name={"g": "clefs.G", 1:"clefs.C",
-                                    "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
-                              rotate=0, canvas_visible=False,
-                              origin_visible=False)
+    if clefobj.pitch == "g":
+        clefobj.punch = MChar(name="clefs.G",
+                              y=clefobj.fixbottom - STAFF_SPACE)
+    # clefobj.punch = MChar(name={"g": "clefs.G", 1:"clefs.C",
+    #                                 "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
+    #                           rotate=0, canvas_visible=False,
+    #                           origin_visible=False)
 
 ############################# punctuation
 
@@ -181,7 +203,7 @@ S.E.CMN.unsafeadd(make_notehead, noteandtreble, "make noteheads",)
 S.E.CMN.unsafeadd(notehead_vertical_pos, noteandtreble, "note vertical position")
 S.E.CMN.unsafeadd(make_accidental_char, isacc, "Making Accidental Characters",)
 # e.CMN.unsafeadd(greenhead, noteandtreble)
-S.E.CMN.unsafeadd(setstem, isnote, "Set stems",)
+# S.E.CMN.unsafeadd(setstem, isnote, "Set stems",)
 S.E.CMN.unsafeadd(setclef, isclef, "Make clefs",)
 # S.E.CMN.unsafeadd(opachead, isnote)
 S.E.CMN.unsafeadd(punctsys, isline, "Punctuate",)
@@ -209,37 +231,19 @@ def setbm(l):
 
 
 def addstaff(n):
-    # s=S.Staff()
-    # n.append(s)
-    # print(s.y)
-    # n.append(S.E.MultiHLineSeg(6, S.E.STAFF_SPACE, n.fixtop))
-    # m=S.E.MChar(name="m")
-    # n.append(m)
-    # n.append(S.E.HLineSeg(length=30, thickness=1, y=n.fixtop))
-    # print(m.x, m.y, n.x, n.y)
-    # print(n.FIXHEIGHT)
     x=5
-    h=n.FIXHEIGHT / (x-1)
+    h=n.FIXHEIGHT / 4.0
     for i in range(x):
-        l=S.E.HLineSeg(length=n.width, thickness=1, y=i*h + n.top,
-                       canvas_visible=False,
-                       origin_visible=False)
+        y = i * STAFF_SPACE + n.fixtop
+        y_original = i*h + n.top
+        l=S.E.HLineSeg(length=n.width, thickness=1, y=y,
+                       canvas_visible=True,
+                       origin_visible=True)
         n.append(l)
-        # S.E.CMN.add(rescale, pred(obj, isinstance(obj, int)), "Reset acc xscale.")
-        # print(S.E.CMN.rules.keys())
-
-# class pred:
-    # def __init__(self, obj, *exprs):
-        # self.obj = obj
-        # self.exprs = exprs
-    # def _replace(self):
-        # for e in self.exprs:
-            # print(e)
-# # pred(isinstance(int), )
     
 S.E.CMN.unsafeadd(addstaff,
-                  lambda obj: isnote(obj),
-                  "Draws stave.")
+                  lambda obj: isnote(obj) or isclef(obj) or is_simple_timesig(obj),
+                  "Draws stave ontop/behind(?)")
 
 
 def skew(staff):
@@ -294,26 +298,26 @@ class System(S.E.HForm):
     # print(n["dur"])
     # return S.E.SForm(content=S.E.MChar(n["name"]))
 # print(sethead(note(0,1,name="noteheads.s0")))
-if __name__=="__main__":
-    ns = (5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
-    W = 270
-    hs = []
-    for x in range(22):
-        h = S.E.HForm(content=[
-            S.Clef(pitch=choice(("g", "f")), canvas_visible=False, origin_visible=False),
-            S.SimpleTimeSig(denom=1, canvas_visible=False,origin_visible=False),
-            *[S.Note(domain="treble",
-                     duration=choice(["q", "h", "w"]),
-                     pitch=[choice(["c", "d"]), 5],
-                     canvas_visible=False,
-                     origin_visible=False)
-              for _ in range(choice(ns))]
-        ],
-                      width=S.E.mm_to_pix(W),
-                      x=20,
-                      y=60 + x * 70,
-                      canvas_visible=False,
-                      origin_visible=False)
-        hs.append(h)
+# if __name__=="__main__":
+#     ns = (5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
+#     W = 270
+#     hs = []
+#     for x in range(22):
+#         h = S.E.HForm(content=[
+#             S.Clef(pitch=choice(("g", "f")), canvas_visible=False, origin_visible=False),
+#             S.SimpleTimeSig(denom=1, canvas_visible=False,origin_visible=False),
+#             *[S.Note(domain="treble",
+#                      duration=choice(["q", "h", "w"]),
+#                      pitch=[choice(["c", "d"]), 5],
+#                      canvas_visible=False,
+#                      origin_visible=False)
+#               for _ in range(choice(ns))]
+#         ],
+#                       width=S.E.mm_to_pix(W),
+#                       x=20,
+#                       y=60 + x * 70,
+#                       canvas_visible=False,
+#                       origin_visible=False)
+#         hs.append(h)
     
-    S.E.render(*hs)
+#     S.E.render(*hs)
