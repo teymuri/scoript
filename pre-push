@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Make this file executable and symlink it into .git/hooks/
+# TODO: run only when pushing to develop and/or main branches.
+pytest tests/
