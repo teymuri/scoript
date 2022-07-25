@@ -700,9 +700,9 @@ class _Form(_Canvas, _Font):
         # should be considered read-only and are updated automatically
         # by the parent Form upon his replacement. Unlike this default
         # height setup, a Form has no pre-existing width.
-        self.abstract_stave_height_top = self.y + scale_by_staff_height_factor(_get_glyph(STAVE_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        self.abstract_stave_height_bottom = self.y + scale_by_staff_height_factor(_get_glyph(STAVE_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
-        self.abstract_stave_height = scale_by_staff_height_factor(_get_glyph(STAVE_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
+        self._abstract_stave_height_top = self.y + scale_by_staff_height_factor(_get_glyph(STAVE_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        self._abstract_stave_height_bottom = self.y + scale_by_staff_height_factor(_get_glyph(STAVE_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        self._abstract_stave_height = scale_by_staff_height_factor(_get_glyph(STAVE_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
@@ -720,9 +720,9 @@ class _Form(_Canvas, _Font):
                 # If child is to be relocated vertically, their fix-top & bottom can not be
                 # the original values, but must move along with the parent.
                 if isinstance(c, _Form):
-                    c.abstract_stave_height_top += self.y
-                    # c.abstract_stave_height_top = self.y
-                    c.abstract_stave_height_bottom += self.y
+                    c._abstract_stave_height_top += self.y
+                    # c._abstract_stave_height_top = self.y
+                    c._abstract_stave_height_bottom += self.y
                     # Fixheight never changes!
     
     def delcont(self, test):
@@ -809,12 +809,12 @@ class _Form(_Canvas, _Font):
         return self.width if self._width_locked else (self.right - self.left)
 
     def _compute_top(self):
-        return min([self.abstract_stave_height_top] + list(map(lambda c: c.top, self.content)))
-        # return min(self.abstract_stave_height_top, self._bbox()[2])
+        return min([self._abstract_stave_height_top] + list(map(lambda c: c.top, self.content)))
+        # return min(self._abstract_stave_height_top, self._bbox()[2])
     
     def _compute_bottom(self):
-        return max([self.abstract_stave_height_bottom] + list(map(lambda c: c.bottom, self.content)))
-        # return max(self.abstract_stave_height_bottom, self._bbox()[3])
+        return max([self._abstract_stave_height_bottom] + list(map(lambda c: c.bottom, self.content)))
+        # return max(self._abstract_stave_height_bottom, self._bbox()[3])
     
     def _compute_height(self): 
         return self.height if self.height_locked else self.bottom - self.top
@@ -903,7 +903,7 @@ class _Form(_Canvas, _Font):
             # maxy = max(self.y, *[bb[3] for bb in bboxs])
             # return SPT.Path(SPT.bbox2path(minx, maxx, miny, maxy)).bbox()
         # else:
-            # return 0, 0, self.abstract_stave_height_top, self.abstract_stave_height_bottom
+            # return 0, 0, self._abstract_stave_height_top, self._abstract_stave_height_bottom
 
 
 class SForm(_Form):
