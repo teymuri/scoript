@@ -14,14 +14,14 @@ def test_char_dim():
     char = MChar(name="noteheads.s0")
     sform = SForm(canvas_opacity=1)
     
-    print(sform.abstract_staff_height_bottom, sform.top, sform.abstract_staff_height,
+    print(sform.abstract_stave_height_bottom, sform.top, sform.abstract_stave_height,
           char.bottom, char.top,
           char._bbox(),
           sform.canvas_color, sform.canvas_visible, sform.canvas_opacity)
-    char.y = sform.abstract_staff_height_bottom
+    char.y = sform.abstract_stave_height_bottom
     h=HForm(content=[])
     h.width = 10
     sform.width = 20
     print(h.canvas_color, h.canvas_opacity, h.canvas_visible,
-          h.abstract_staff_height_bottom, h.abstract_staff_height_top, h.abstract_staff_height, h.width)
+          h.abstract_stave_height_bottom, h.abstract_stave_height_top, h.abstract_stave_height, h.width)
     render(sform, path="/tmp/amir.svg")
