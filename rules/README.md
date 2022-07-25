@@ -5,4 +5,4 @@
 ## Chlapik Notizen
 ### Die Einteilung des Manuskriptes, S. 34
 * Der _konkrete_ Inhalt der einzelnen _Notenseiten_ schon von Anbeginn feststehen muß.
-* Im wesentlichen besteht die Arbeit des Einteilens in einem _Umbruch_ des Manuskriptes in _einzelne Zeilen_ (oder Systeme), die dann wieder zu ganzen Seiten zusammengefügt werden.
+* Im wesentlichen besteht die Arbeit des Einteilens in einem _Umbruch_ des Manuskriptes _in einzelne Zeilen_ (oder Systeme), die dann wieder zu ganzen Seiten zusammengefügt werden.
