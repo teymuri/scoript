@@ -64,16 +64,18 @@ def setstem(self):
         self.stem_graver = s #taze , appliedto =false
 
 def notehead_vertical_pos(note_obj):
-    """note_obj is a form; it's abstract_staff_height_bottom is the bottom of a clefs.C
-    (i.e. bottom edge of a staff height). To find the vertical
-    position of the notehead I set it's y (which is originally placed
-    in the middle of the clefs.C i.e. the middle staff line) to be the
-    bottom edge of the SForm (abstract_staff_height_bottom) + 1 staff space to get C4,
-    half staff space to get D4, 0 staff spaces to get the E4 etc. Not
-    that towards top the page we are decreasing, while towards bottom
-    of the page we increase the y coordinate. The rest is to replace
-    the result of aforementioned calculations be a certian amount
-    (offset_by_oct below) to transpose to other octaves.
+    """note_obj is a stacked form; it's abstract_staff_height_bottom
+    is the bottom of a clefs.C (i.e. bottom edge of the chosen stave
+    height). To find the vertical position of the notehead I set it's
+    y (which is originally placed in the middle of the clefs.C
+    i.e. the middle stave line) to be the bottom edge of the SForm
+    (abstract_staff_height_bottom) + 1 stave space to get C4, half
+    stave space to get D4, 0 stave spaces to get the E4, half stave
+    space towards top of page to get F4 (-0.5 * STAFF_SPACE, topwards
+    our y coordinate is moving negative, downwards positive) etc. The
+    rest is to replace the result of aforementioned calculations by a
+    certian amount (offset_by_oct below) to transpose to other
+    octaves.
 
     """
     if isinstance(note_obj.pitch, list):
@@ -246,10 +248,10 @@ S.E.CMN.unsafeadd(addstaff,
                   "Draws stave ontop/behind(?)")
 
 
-def skew(staff):
-    print(staff.skewx)
-    staff.skewx = 50
-    print(staff.skewx)
+def skew(stave):
+    print(stave.skewx)
+    stave.skewx = 50
+    print(stave.skewx)
 def ishline(x): return isinstance(x,S.E.HLineSeg)
 # S.E.CMN.add(skew, isline, "SKEW stave")
 # S.E.CMN.unsafeadd(skew, isline, "SKEW stave")

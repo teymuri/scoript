@@ -95,7 +95,7 @@ def mm_to_pix(mm):
     return mm * MM_PIX_FACTOR
 
 # Gould, pg. 483
-GOULD_STAVE_HEIGHTS = {
+GOULD_STAVE_HEIGHTS_IN_MM = {
     0: 9.2, 1: 7.9, 2: 7.4, 3: 7,
     4: 6.5, 5: 6, 6: 5.5, 7: 4.8,
     8: 3.7
@@ -103,7 +103,7 @@ GOULD_STAVE_HEIGHTS = {
 def gould_stave_space(size_idx):
     """Gould, pg. 483
     """
-    return mm_to_pix(GOULD_STAVE_HEIGHTS[size_idx] * 0.25)
+    return mm_to_pix(GOULD_STAVE_HEIGHTS_IN_MM[size_idx] * 0.25)
 
 # def gould_stave_space(rastral_number):
 #     """Behind Bars, pg. 482-3:
@@ -124,8 +124,8 @@ def chlapik_rastral_height(rastral_number):
     "acht": mm_to_pix(1.02)}[rastral_number]
 
 
-STAVE_HEIGHT = mm_to_pix(GOULD_STAVE_HEIGHTS[0])
-STAFF_SPACE = mm_to_pix(GOULD_STAVE_HEIGHTS[0] / 4)
+STAVE_HEIGHT = mm_to_pix(GOULD_STAVE_HEIGHTS_IN_MM[0])
+STAFF_SPACE = mm_to_pix(GOULD_STAVE_HEIGHTS_IN_MM[0] / 4)
 # gould_stave_space(0)
 GLOBAL_SCALE_FACTOR = 1.0
 
