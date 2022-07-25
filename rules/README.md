@@ -1,1 +1,1 @@
-- The most important element in a line is the notehead. It has the heighest priority while allocating space. Everything else _should_ just take up the remaining space _after_ note heads have got their proper spaces. 
+- The most important element in a line is the note head. It has the heighest priority while allocating space. Everything else _should_ just take whatever space is left _after_ note heads have got their proper spaces. 
