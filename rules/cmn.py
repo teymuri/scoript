@@ -116,6 +116,7 @@ def decide_unit_dur(dur_counts):
     # return list(sorted(dur_counts.items()))[1][1]
     return list(sorted(dur_counts, key=lambda l:l[0]))[0][1]
 
+# from Gould page 39
 punct_units = {"w":7, "h": 5, "q": 3.5,"8":3.5, "e": 2.5, "s": 2}
 
 def ufactor(udur, dur2):
