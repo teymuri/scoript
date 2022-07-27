@@ -1,4 +1,4 @@
-# Common Music Notation (Notes on Spacing)
+# Common Music Notation
 ## My Notes
 - The most important element in a line is the note head. It has the heighest priority while allocating space. Everything else _should_ just take whatever space is left _after_ note heads have got their proper spaces. 
 
@@ -48,4 +48,22 @@
 * Noch verbleibende geringfügige Differenzen lassen sich durch minimale Veränderungen der Zeichenabstände beseitigen.
 
 ## Karl Hader (Aus der Werkstatt eines Notenstechers)
-
+### Die Arbeit, S. 47
+Bei der Herstellung der Stichplatte unterscheiden wir drei Vorgänge:
+1. Das Abstecken und Rastrieren der Notenlinien; das Einteilen der einzelnen Noten und Takte der Breite nach; das Strichlieren und das Einzeichnen des vollständigen Noten- und Textteiles. 
+2. Das _Schlagen_ der Platte. Also das Einschlagen aller Musikzeichen und Texte, anschließend daran das Planieren.
+3. Das eigentliche Stechen. Hier werden nun die Taktstriche, Stiele, Kopfstriche, Balken, Crescendi und große Bogen eingestochen.
+#### Das Abstecken, Rastrieren und Einteilen
+- Mit der Besprechung des stichreifen Manuskriptes durch den Faktor(?) mit den Gehilfen und mit der Übernahme einer schriftlichen **Stichvorschrift (Stichzettel)** über die spezielle Durchführung des zu stechenden Werkes - für den Fall, daß mehrere Stecher an einem Werke arbeiten sollten - beginnt der Stecher sine Arbeit.
+- ... Dann beginnt der Stecher mit dem Auftragen der Stichbreite, indem er links und rechts am Plattenrand senkrechte Striche leicht einzeichnet.
+  - Am rechten Plattenrand bleibt ein breiterer Raum frei.
+  - Gestochen wird spiegelbildlich, also von rechts nach links.
+- Dann nimmt der Stecher die Höheneinteilung vor und berechnet das für eine Seite vorgesehene Text- und Notenmaterial nach Raum und Stellung für Titelzeilen, Noten- und Textlinien. Er trägt dazu auf den Stichbreitenlinien mit dem Zirkel Querstriche auf. Die geschickte Beherrschung dieser Tätigkeit läßt sofort auf die Intelligenz und den Geschmack des jeweiligen Stechers Rückschlüsse zu.
+- Diese Arbeit wird von oben nach unten durchgeführt und so oft wiederholt, bis durch Vergrößern oder Verkleinern des freibleibenden weißen Raumes die schöne, harmonische Verteilung von Raum und Stoff ausgeführt ist.
+- Als Berechnungsgrundlage gilt der Raum zwischen zwei Linien eines fünflinigen Rastrals der jeweils vorgeschriebenen Größe.
+  - Es gibt verschiedene Rastralgrößen, die in allen notenstechenden Ländern international genormt sind.
+- Als Regel für diese Arbeit, das _Abstecken_ der Platte, gilt folgendes:
+  1. Bei allen der Höhe nach zu brechnenden Abständen gilt der Zwischenraum des für die betreffende Arbeit vorgeschriebenen Rasters als Grundmaß.
+  2. Aller noch freibleibende Raum der Höhe nach (nach Abzug des für Text und Noten benötigten) wird gleichmäßig und harmonisch zwischen den Linien aufgeteilt. Optische Täuschung ist dabei anzuwenden.
+#### Das Schlagen
+#### Das eigentliche Stechen
