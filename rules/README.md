@@ -65,5 +65,6 @@ Bei der Herstellung der Stichplatte unterscheiden wir drei Vorgänge:
 - Als Regel für diese Arbeit, das _Abstecken_ der Platte, gilt folgendes:
   1. Bei allen der Höhe nach zu brechnenden Abständen gilt der Zwischenraum des für die betreffende Arbeit vorgeschriebenen Rasters als Grundmaß.
   2. Aller noch freibleibende Raum der Höhe nach (nach Abzug des für Text und Noten benötigten) wird gleichmäßig und harmonisch zwischen den Linien aufgeteilt. Optische Täuschung ist dabei anzuwenden.
+- Daß es sich bei höhenengen Seiten nicht immer nur um den Raum eines vollen Zwischenraumes handeln kann, sondern um Bruchteile, die bis zur Kleinheit eines Punktes gehen können, ist selbstverständlich.
 #### Das Schlagen
 #### Das eigentliche Stechen
