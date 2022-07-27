@@ -54,17 +54,36 @@ Bei der Herstellung der Stichplatte unterscheiden wir drei Vorgänge:
 2. Das _Schlagen_ der Platte. Also das Einschlagen aller Musikzeichen und Texte, anschließend daran das Planieren.
 3. Das eigentliche Stechen. Hier werden nun die Taktstriche, Stiele, Kopfstriche, Balken, Crescendi und große Bogen eingestochen.
 #### Das Abstecken, Rastrieren und Einteilen
-- Mit der Besprechung des stichreifen Manuskriptes durch den Faktor(?) mit den Gehilfen und mit der Übernahme einer schriftlichen **Stichvorschrift (Stichzettel)** über die spezielle Durchführung des zu stechenden Werkes - für den Fall, daß mehrere Stecher an einem Werke arbeiten sollten - beginnt der Stecher sine Arbeit.
-- ... Dann beginnt der Stecher mit dem Auftragen der Stichbreite, indem er links und rechts am Plattenrand senkrechte Striche leicht einzeichnet.
-  - Am rechten Plattenrand bleibt ein breiterer Raum frei.
-  - Gestochen wird spiegelbildlich, also von rechts nach links.
-- Dann nimmt der Stecher die Höheneinteilung vor und berechnet das für eine Seite vorgesehene Text- und Notenmaterial nach Raum und Stellung für Titelzeilen, Noten- und Textlinien. Er trägt dazu auf den Stichbreitenlinien mit dem Zirkel Querstriche auf. Die geschickte Beherrschung dieser Tätigkeit läßt sofort auf die Intelligenz und den Geschmack des jeweiligen Stechers Rückschlüsse zu.
-- Diese Arbeit wird von oben nach unten durchgeführt und so oft wiederholt, bis durch Vergrößern oder Verkleinern des freibleibenden weißen Raumes die schöne, harmonische Verteilung von Raum und Stoff ausgeführt ist.
-- Als Berechnungsgrundlage gilt der Raum zwischen zwei Linien eines fünflinigen Rastrals der jeweils vorgeschriebenen Größe.
-  - Es gibt verschiedene Rastralgrößen, die in allen notenstechenden Ländern international genormt sind.
-- Als Regel für diese Arbeit, das _Abstecken_ der Platte, gilt folgendes:
+Mit der Besprechung des stichreifen Manuskriptes durch den Faktor(?) mit den Gehilfen und mit der Übernahme einer schriftlichen **Stichvorschrift (Stichzettel)** über die spezielle Durchführung des zu stechenden Werkes - für den Fall, daß mehrere Stecher an einem Werke arbeiten sollten - beginnt der Stecher sine Arbeit.
+... Dann beginnt der Stecher mit dem Auftragen der Stichbreite, indem er links und rechts am Plattenrand senkrechte Striche leicht einzeichnet.
+Am rechten Plattenrand bleibt ein breiterer Raum frei.
+Gestochen wird spiegelbildlich, also von rechts nach links.
+Dann nimmt der Stecher die Höheneinteilung vor und berechnet das für eine Seite vorgesehene Text- und Notenmaterial nach Raum und Stellung für Titelzeilen, Noten- und Textlinien. Er trägt dazu auf den Stichbreitenlinien mit dem Zirkel Querstriche auf. Die geschickte Beherrschung dieser Tätigkeit läßt sofort auf die Intelligenz und den Geschmack des jeweiligen Stechers Rückschlüsse zu.
+Diese Arbeit wird von oben nach unten durchgeführt und so oft wiederholt, bis durch Vergrößern oder Verkleinern des freibleibenden weißen Raumes die schöne, harmonische Verteilung von Raum und Stoff ausgeführt ist.
+Als Berechnungsgrundlage gilt der Raum zwischen zwei Linien eines fünflinigen Rastrals der jeweils vorgeschriebenen Größe. Es gibt verschiedene Rastralgrößen, die in allen notenstechenden Ländern international genormt sind.
+Als Regel für diese Arbeit, das _Abstecken_ der Platte, gilt folgendes:
   1. Bei allen der Höhe nach zu brechnenden Abständen gilt der Zwischenraum des für die betreffende Arbeit vorgeschriebenen Rasters als Grundmaß.
   2. Aller noch freibleibende Raum der Höhe nach (nach Abzug des für Text und Noten benötigten) wird gleichmäßig und harmonisch zwischen den Linien aufgeteilt. Optische Täuschung ist dabei anzuwenden.
-- Daß es sich bei höhenengen Seiten nicht immer nur um den Raum eines vollen Zwischenraumes handeln kann, sondern um Bruchteile, die bis zur Kleinheit eines Punktes gehen können, ist selbstverständlich.
+
+Daß es sich bei höhenengen Seiten nicht immer nur um den Raum eines vollen Zwischenraumes handeln kann, sondern um Bruchteile, die bis zur Kleinheit eines Punktes gehen können, ist selbstverständlich.
+
+TODO: CONTINUE SEITE 50 ...
+
+Nun beginnt die Einteilung der einzelnen Noten und Takte nach ihrem Abstand voneinander der Breite nach. Wir benützen dazu wieder unsere Stahlzirkel.
+Der Stecher nennt diese Arbeit das _Punktieren_.
+Es könnte naheliegend scheinen, dieses _Punktieren_ den musikalischen Gesetzen gemäß durchzuführen. So etwa, daß zum Beispiel eine Sechzehntelnote doppelt so lang wie eine Zweiunddreißigstel, eine Achtelnote doppelt so lang wie eine Sechzehntel, und so fort bis zur Ganzen Note. Eine solche Art von Berechnung würde allerdings zu einer reichlichen Platzvergeudung führen, die sich bis zur technischen Undurchführbarkeit steigern würde. Darum wird also beim Punktieren zum Zweck rationaller Raumausnützung der breitenräumliche Größenunterschied der einzelnen musikalischen Werte von Noten und Pausen wohl mit gesetzmäßiger Strenge un Genauigkeit durchgeführt, doch so, daß jeder musikalische Wert, ob Noten oder Pausen, gegenüber seinem kleineren nicht vergrößert, sondern verkleinert wird: 1 Viertel = 1 1/2 Achtel, 1 Halbe = 2 Achtel, 1 Ganze = 3 Achtel groß, und zwar _immer nur innerhalb eines Systems oder einer Linie_. Selbstverständlich müssen die Noten, wenn zwischen ihnen Vorzeichen, Wechselschlüssel usw. liegen, außer ihrem eigenen musikalischen Wert auch um die Breite dieser Zeichen noch vergrößert werden. Daraus ergeben sich manchmal unvermeidbare Ausnahmen, wenn etwa innerhalb eines Klaviersystems mit vorwiegender Akkord-Achtelbewegung plötzlich ein Achtel aus der räumlich gleich punktierten Achtelschar durch seine ungesetzmäßige Größe hervorstich, einfach darum, weil in seinem Dreiklang vor jeder Note eine Vorzeichnung stand und jede Vorzeichnung ihren natürlichen Platz verlangte. Diese Berechnung kompliziert sich noch um so mehr, wenn überlegte Gesangtexte über dem Klaviersystem stehen. In solchen Fällen müssen die Gegensätze in der Note-Wertraumbeständigkeit durch raffinierte Berechnung nach Möglichkeit gemildert werden, um optische Überraschungen zu vermeiden. In dieser Art wird nun die Einteilung der Breite nach durchgeführt. Jede ermessene Stelle der Noten und Pausen wird mit einem zarten Zirkelspitzenpunkt innerhalb der Notenlinie fixiert und so oft wiederholt, wobei die einzelnen Werte unter strenger Beibehaltung ihres gegenseitigen Wertverhältnisses jeweils vergrößert oder verkleinert werden, bis die Berechnung einen genauen Abschluß am Ende der Zeile ergibt, was nur in seltenen Fällen beim ersten Male gelingt. Achtung: "Läusefraß" vermeiden(?!!!). Nun werden mit Reißschiene und Zeichenspitz an die Stelle der Einteilungspunkte senkrechte Striche gezogen, die nötigen Hilfslinien über und unter die Notenzeilen eingezogen und dann das ganze Notenbild wieder mit dem Zeichenspitz eingezeichnet. Zuletzt werden mit dem Zirkel an den betreffenden Stellen für die einzuschlagenden Texte feine Linien, die Textlinien, eingezogen und je nach Arbeitsweise des Stechers auch die ganzen Texte eingezeichnet. Manche Stecher ziehen es vor, den Text unmittelbar aus dem Manuskript zu schlagen, ohne ihn vorher einzuzeichnen.
+Der erste Teil der Arbeit, das Abstecken, Rastrieren, Punktieren, Strichlieren und Einzeichnen ist damit beendet.
+##### Die musikalische Orthographie
 #### Das Schlagen
 #### Das eigentliche Stechen
+
+## Ted Ross (The Art of Music Engraving & Processing)
+### Chapter 2, Preparing Music for Engraving
+... (starting page 58) After the reviewing of the manuscript, there are five steps to be taken in planning for the engraving:
+1. Casting off (Marking Off)
+2. Vertical layout
+3. Ruling lines
+4. Punctuating
+5. Stamping (this step starts the actual engraving)
+#### Casting Off
+Casting off is the marking off of the parts - the determining of the number of measures per staff, staves per page, and pages per composition. This step involves making sure that the staff in use is of the correct size to suit the number of music characters that are to be placed on it.
