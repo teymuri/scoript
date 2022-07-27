@@ -87,3 +87,4 @@ Der erste Teil der Arbeit, das Abstecken, Rastrieren, Punktieren, Strichlieren u
 5. Stamping (this step starts the actual engraving)
 #### Casting Off
 Casting off is the marking off of the parts - the determining of the number of measures per staff, staves per page, and pages per composition. This step involves making sure that the staff in use is of the correct size to suit the number of music characters that are to be placed on it.
+1. It is advisable to keep all staves on a page somewhat uniform. That is, when all the measures in two successive staves are approximately the same as far as notation goes, do not have six measures on one staff, and three on the other.
