@@ -96,8 +96,8 @@ def mm_to_pix(mm):
 
 # Gould, pg. 483
 GOULD_STAFF_HEIGHTS_IN_MM = {
-    0: 9.2, 1: 7.9, 2: 7.4, 3: 7,
-    4: 6.5, 5: 6, 6: 5.5, 7: 4.8,
+    0: 9.2, 1: 7.9, 2: 7.4, 3: 7.0,
+    4: 6.5, 5: 6.0, 6: 5.5, 7: 4.8,
     8: 3.7
 }
 def gould_stave_space(size_idx):
