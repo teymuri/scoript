@@ -94,39 +94,22 @@ def mm_to_pix(mm):
     """
     return mm * MM_PIX_FACTOR
 
-# Gould, pg. 483
+# Gould, page 483
 GOULD_STAFF_HEIGHTS_IN_MM = {
     0: 9.2, 1: 7.9, 2: 7.4, 3: 7.0,
     4: 6.5, 5: 6.0, 6: 5.5, 7: 4.8,
     8: 3.7
 }
-def gould_stave_space(size_idx):
-    """Gould, pg. 483
-    """
-    return mm_to_pix(GOULD_STAFF_HEIGHTS_IN_MM[size_idx] * 0.25)
-
-# def gould_stave_space(rastral_number):
-#     """Behind Bars, pg. 482-3:
-#     The rastral height is the measurement of one staff-space.
-#     """
-#     return {
-#         "zero": mm_to_pix(9.2*.25), "one": mm_to_pix(7.9*.25), "two": mm_to_pix(7.4*.25),
-#         "three": mm_to_pix(7*.25), "four": mm_to_pix(6.5*.25), "five": mm_to_pix(6*.25),
-#         "six": mm_to_pix(5.5*.25), "seven": mm_to_pix(4.8*.25), "eight": mm_to_pix(3.7*.25)
-#     }[rastral_number]
-
-def chlapik_rastral_height(rastral_number):
-    """Die Praxis des Notengraphikers, pg. 32
-    """
-    return {
-    "zwei": mm_to_pix(1.88), "drei": mm_to_pix(1.755), "vier": mm_to_pix(1.6),
-    "fuenf": mm_to_pix(1.532), "sechs": mm_to_pix(1.4), "sieben": mm_to_pix(1.19),
-    "acht": mm_to_pix(1.02)}[rastral_number]
-
+# Chlapik, page 32
+CHLAPIK_STAFF_HEIGHTS_IN_MM = {
+    2: 1.88, 3: 1.755, 4: 1.6,
+    5: 1.532, 6: 1.4, 7: 1.19, 8: 1.02
+}
 
 STAFF_HEIGHT = mm_to_pix(GOULD_STAFF_HEIGHTS_IN_MM[0])
 STAFF_SPACE = mm_to_pix(GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
-# gould_stave_space(0)
+
+# This factor should be used to scale all objects globally
 GLOBAL_SCALE_FACTOR = 1.0
 
 
