@@ -53,7 +53,7 @@ def test_twelve_hform_list(asset):
     for i, dur in enumerate(durs):
         h = HForm(content=[
             Clef(pitch="g", canvas_visible=True, origin_visible=True),
-            # SimpleTimeSig(denom=1, canvas_visible=True,origin_visible=True),
+            SimpleTimeSig(denom=1, canvas_visible=True,origin_visible=True),
             *[Note(domain="treble",
                      duration=dur,
                      pitch=[p, 4],

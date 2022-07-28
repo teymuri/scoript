@@ -244,11 +244,11 @@ def addstaff(n):
     for i in range(x):
         y = i * STAFF_SPACE + n._abstract_staff_height_top
         y_original = i*h + n.top
+        # length = n.right - n.x
         l=S.E.HLineSeg(length=n.width, thickness=1, y=y,
+                       x = n.left,
                        canvas_visible=True,
                        origin_visible=True)
-        # if isclef(n):
-        #     breakpoint()
         n.append(l)
     
 S.E.CMN.unsafeadd(addstaff,
