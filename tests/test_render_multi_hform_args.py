@@ -49,11 +49,11 @@ def test_hform_list_with_diff_durs(asset):
 def test_twelve_hform_list(asset):
     W = 270
     hs = []
-    durs = ("q", "h", "w") * 4
+    durs = ("q", "h", "w")
     for i, dur in enumerate(durs):
         h = HForm(content=[
             Clef(pitch="g", canvas_visible=True, origin_visible=True),
-            SimpleTimeSig(denom=1, canvas_visible=True,origin_visible=True),
+            # SimpleTimeSig(denom=1, canvas_visible=True,origin_visible=True),
             *[Note(domain="treble",
                      duration=dur,
                      pitch=[p, 4],

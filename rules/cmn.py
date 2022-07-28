@@ -2,7 +2,7 @@
 """
 
 from random import randint, choice
-from engine import STAVE_SPACE, MChar
+from engine import STAFF_SPACE, MChar, HForm
 import score as S
 import copy 
 
@@ -64,14 +64,14 @@ def setstem(self):
         self.stem_graver = s #taze , appliedto =false
 
 def notehead_vertical_pos(note_obj):
-    """note_obj is a stacked form; it's _abstract_stave_height_bottom
+    """note_obj is a stacked form; it's _abstract_staff_height_bottom
     is the bottom of a clefs.C (i.e. bottom edge of the chosen stave
     height). To find the vertical position of the notehead I set it's
     y (which is originally placed in the middle of the clefs.C
     i.e. the middle stave line) to be the bottom edge of the SForm
-    (_abstract_stave_height_bottom) + 1 stave space to get C4, half
+    (_abstract_staff_height_bottom) + 1 stave space to get C4, half
     stave space to get D4, 0 stave spaces to get the E4, half stave
-    space towards top of page to get F4 (-0.5 * STAVE_SPACE, topwards
+    space towards top of page to get F4 (-0.5 * STAFF_SPACE, topwards
     our y coordinate is moving negative, downwards positive) etc. The
     rest is to replace the result of aforementioned calculations by a
     certian amount (offset_by_oct below) to transpose to other
@@ -82,16 +82,16 @@ def notehead_vertical_pos(note_obj):
         p = note_obj.pitch[0]
         okt = note_obj.pitch[1]
         # content of octave 4
-        pos_on_staff = note_obj._abstract_stave_height_bottom + {
-            "c": 1 * S.E.STAVE_SPACE,
-            "d": 0.5 * S.E.STAVE_SPACE,
-            "e": 0 * S.E.STAVE_SPACE,
-            "f": -0.5 * STAVE_SPACE,
-            "g": -1 * STAVE_SPACE,
-            "a": -1.5 * STAVE_SPACE,
-            "b": -2 * STAVE_SPACE
+        pos_on_staff = note_obj._abstract_staff_height_bottom + {
+            "c": 1 * S.E.STAFF_SPACE,
+            "d": 0.5 * S.E.STAFF_SPACE,
+            "e": 0 * S.E.STAFF_SPACE,
+            "f": -0.5 * STAFF_SPACE,
+            "g": -1 * STAFF_SPACE,
+            "a": -1.5 * STAFF_SPACE,
+            "b": -2 * STAFF_SPACE
         }[p]
-        offset_by_oct = (4 - okt) * 7/8 * note_obj._abstract_stave_height
+        offset_by_oct = (4 - okt) * 7/8 * note_obj._abstract_staff_height
         note_obj.head_punch.y = pos_on_staff + offset_by_oct
 
 
@@ -104,7 +104,7 @@ def make_accidental_char(accobj):
 def setclef(clefobj):
     if clefobj.pitch == "g":
         clefobj.punch = MChar(name="clefs.G",
-                              y=clefobj._abstract_stave_height_bottom - STAVE_SPACE)
+                              y=clefobj._abstract_staff_height_bottom - STAFF_SPACE)
     # clefobj.punch = MChar(name={"g": "clefs.G", 1:"clefs.C",
     #                                 "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
     #                           rotate=0, canvas_visible=False,
@@ -141,7 +141,9 @@ def compute_perf_punct(clocks, w):
     return perfwidths
 
 def right_guard(obj):
-    return {S.Note: 2, S.Clef:3, S.Accidental: 2, S.SimpleTimeSig: 5}[type(obj)]
+    return {S.Note: 2, S.Clef:0,
+            S.Accidental: 2,
+            S.SimpleTimeSig: 0}[type(obj)]
 def first_clock_idx(l):
     for i,x in enumerate(l):
         if isinstance(x, S.Clock):
@@ -209,7 +211,10 @@ S.E.CMN.unsafeadd(make_accidental_char, isacc, "Making Accidental Characters",)
 # S.E.CMN.unsafeadd(setstem, isnote, "Set stems",)
 S.E.CMN.unsafeadd(setclef, isclef, "Make clefs",)
 # S.E.CMN.unsafeadd(opachead, isnote)
-S.E.CMN.unsafeadd(punctsys, isline, "Punctuate",)
+S.E.CMN.unsafeadd(punctsys,
+                  # isline,
+                  lambda x: isinstance(x, HForm),
+                  "Punctuate",)
 
 
 def setbm(l):
@@ -235,13 +240,15 @@ def setbm(l):
 
 def addstaff(n):
     x=5
-    h=n._abstract_stave_height / 4.0
+    h=n._abstract_staff_height / 4.0
     for i in range(x):
-        y = i * STAVE_SPACE + n._abstract_stave_height_top
+        y = i * STAFF_SPACE + n._abstract_staff_height_top
         y_original = i*h + n.top
         l=S.E.HLineSeg(length=n.width, thickness=1, y=y,
                        canvas_visible=True,
                        origin_visible=True)
+        # if isclef(n):
+        #     breakpoint()
         n.append(l)
     
 S.E.CMN.unsafeadd(addstaff,

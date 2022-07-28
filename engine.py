@@ -81,7 +81,7 @@ def _get_glyph(name, font):
 # We use the height of the alto clef as the reference for the height
 # of the staff. Note that this name should exist in the font we are
 # using. See also Chlapik page 33.
-STAVE_HEIGHT_REFERENCE_GLYPH = "clefs.C"
+STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
 
 
 ##### Rastral, Dimensions, Margins
@@ -95,7 +95,7 @@ def mm_to_pix(mm):
     return mm * MM_PIX_FACTOR
 
 # Gould, pg. 483
-GOULD_STAVE_HEIGHTS_IN_MM = {
+GOULD_STAFF_HEIGHTS_IN_MM = {
     0: 9.2, 1: 7.9, 2: 7.4, 3: 7,
     4: 6.5, 5: 6, 6: 5.5, 7: 4.8,
     8: 3.7
@@ -103,7 +103,7 @@ GOULD_STAVE_HEIGHTS_IN_MM = {
 def gould_stave_space(size_idx):
     """Gould, pg. 483
     """
-    return mm_to_pix(GOULD_STAVE_HEIGHTS_IN_MM[size_idx] * 0.25)
+    return mm_to_pix(GOULD_STAFF_HEIGHTS_IN_MM[size_idx] * 0.25)
 
 # def gould_stave_space(rastral_number):
 #     """Behind Bars, pg. 482-3:
@@ -124,8 +124,8 @@ def chlapik_rastral_height(rastral_number):
     "acht": mm_to_pix(1.02)}[rastral_number]
 
 
-STAVE_HEIGHT = mm_to_pix(GOULD_STAVE_HEIGHTS_IN_MM[0])
-STAVE_SPACE = mm_to_pix(GOULD_STAVE_HEIGHTS_IN_MM[0] / 4)
+STAFF_HEIGHT = mm_to_pix(GOULD_STAFF_HEIGHTS_IN_MM[0])
+STAFF_SPACE = mm_to_pix(GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
 # gould_stave_space(0)
 GLOBAL_SCALE_FACTOR = 1.0
 
@@ -138,7 +138,7 @@ def scale_by_staff_height_factor(r, global_factor=GLOBAL_SCALE_FACTOR):
     present to let us control this factor globally for all objects.
 
     """
-    staff_height_factor = (4 * STAVE_SPACE) / _get_glyph(STAVE_HEIGHT_REFERENCE_GLYPH,
+    staff_height_factor = (4 * STAFF_SPACE) / _get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH,
                                                          "haydn-11")["height"]
     return r * global_factor * staff_height_factor
 
@@ -692,7 +692,7 @@ class _Form(_Canvas, _Font):
         # The following 3 attributes carry information about the
         # height of a Form object. Each Form is created with a default
         # (hypothetical) height, which is equal to the height of the
-        # chosen stave (STAVE_HEIGHT). This hypothetical height
+        # chosen stave (STAFF_HEIGHT). This hypothetical height
         # information can be useful in various contexts, e.g. where
         # reference to the height of the underlying stave is
         # needed. These values are relative to the position of the
@@ -700,9 +700,9 @@ class _Form(_Canvas, _Font):
         # should be considered read-only and are updated automatically
         # by the parent Form upon his replacement. Unlike this default
         # height setup, a Form has no pre-existing width.
-        self._abstract_stave_height_top = self.y + scale_by_staff_height_factor(_get_glyph(STAVE_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        self._abstract_stave_height_bottom = self.y + scale_by_staff_height_factor(_get_glyph(STAVE_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
-        self._abstract_stave_height = scale_by_staff_height_factor(_get_glyph(STAVE_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
+        self._abstract_staff_height_top = self.y + scale_by_staff_height_factor(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        self._abstract_staff_height_bottom = self.y + scale_by_staff_height_factor(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        self._abstract_staff_height = scale_by_staff_height_factor(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
@@ -720,9 +720,9 @@ class _Form(_Canvas, _Font):
                 # If child is to be relocated vertically, their fix-top & bottom can not be
                 # the original values, but must move along with the parent.
                 if isinstance(c, _Form):
-                    c._abstract_stave_height_top += self.y
-                    # c._abstract_stave_height_top = self.y
-                    c._abstract_stave_height_bottom += self.y
+                    c._abstract_staff_height_top += self.y
+                    # c._abstract_staff_height_top = self.y
+                    c._abstract_staff_height_bottom += self.y
                     # Fixheight never changes!
     
     def delcont(self, test):
@@ -809,12 +809,12 @@ class _Form(_Canvas, _Font):
         return self.width if self._width_locked else (self.right - self.left)
 
     def _compute_top(self):
-        return min([self._abstract_stave_height_top] + list(map(lambda c: c.top, self.content)))
-        # return min(self._abstract_stave_height_top, self._bbox()[2])
+        return min([self._abstract_staff_height_top] + list(map(lambda c: c.top, self.content)))
+        # return min(self._abstract_staff_height_top, self._bbox()[2])
     
     def _compute_bottom(self):
-        return max([self._abstract_stave_height_bottom] + list(map(lambda c: c.bottom, self.content)))
-        # return max(self._abstract_stave_height_bottom, self._bbox()[3])
+        return max([self._abstract_staff_height_bottom] + list(map(lambda c: c.bottom, self.content)))
+        # return max(self._abstract_staff_height_bottom, self._bbox()[3])
     
     def _compute_height(self): 
         return self.height if self.height_locked else self.bottom - self.top
@@ -903,7 +903,7 @@ class _Form(_Canvas, _Font):
             # maxy = max(self.y, *[bb[3] for bb in bboxs])
             # return SPT.Path(SPT.bbox2path(minx, maxx, miny, maxy)).bbox()
         # else:
-            # return 0, 0, self._abstract_stave_height_top, self._abstract_stave_height_bottom
+            # return 0, 0, self._abstract_staff_height_top, self._abstract_staff_height_bottom
 
 
 class SForm(_Form):
