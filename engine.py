@@ -90,7 +90,7 @@ STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
 MM_PIX_FACTOR = 3.7795275591
 
 def mm_to_pix(mm):
-    """Converts mm to pixels. 
+    """Converts millimeter to pixels. 
     """
     return mm * MM_PIX_FACTOR
 
@@ -101,7 +101,7 @@ GOULD_STAFF_HEIGHTS_IN_MM = {
     8: 3.7
 }
 # Chlapik, page 32
-CHLAPIK_STAFF_HEIGHTS_IN_MM = {
+CHLAPIK_STAFF_SPACES_IN_MM = {
     2: 1.88, 3: 1.755, 4: 1.6,
     5: 1.532, 6: 1.4, 7: 1.19, 8: 1.02
 }
@@ -124,7 +124,7 @@ def scale_by_staff_height_factor(r, global_factor=GLOBAL_SCALE_FACTOR):
     staff_height_factor = (4 * STAFF_SPACE) / _get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH,
                                                          "haydn-11")["height"]
     return r * global_factor * staff_height_factor
-
+breakpoint()
 _LEFT_MARGIN = mm_to_pix(36)
 _TOP_MARGIN = mm_to_pix(56)
 
