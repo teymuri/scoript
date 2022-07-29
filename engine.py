@@ -53,25 +53,27 @@ def install_font1(path, overwrite=False):
         else:
             raise NotImplementedError("Non-svg fonts are not supported!")
 
-_loaded_fonts = {}
+loaded_fonts_dict = {}
 
 def _load_fonts():
     smt_dir = os.path.dirname(os.path.abspath(__file__))
     json_dir = smt_dir + "/fonts/json"
     for json_file in os.listdir(json_dir):
         with open(f"{json_dir}/{json_file}") as font:
-            _loaded_fonts[os.path.splitext(json_file)[0]] = json.load(font)
+            loaded_fonts_dict[os.path.splitext(json_file)[0]] = json.load(font)
 
 
 # install_font1("./fonts/svg/haydn-11.svg",1)
 _load_fonts()
 
 def glyph_names(font):
-    return _loaded_fonts[font].keys()
+    return loaded_fonts_dict[font].keys()
 
 def get_glyph(name, font):
-    return _loaded_fonts[font][name]
-# print(_loaded_fonts)
+    """Returns ...
+    """
+    return loaded_fonts_dict[font][name]
+# print(loaded_fonts_dict)
 
 
 # ################################
@@ -106,24 +108,24 @@ CHLAPIK_STAFF_SPACES_IN_MM = {
     5: 1.532, 6: 1.4, 7: 1.19, 8: 1.02
 }
 
-STAFF_HEIGHT = mm_to_pix(GOULD_STAFF_HEIGHTS_IN_MM[0])
-STAFF_SPACE = mm_to_pix(GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
+DESIRED_STAFF_HEIGHT = mm_to_pix(GOULD_STAFF_HEIGHTS_IN_MM[0])
+DESIRED_STAFF_SPACE = mm_to_pix(GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
 
 # This factor should be used to scale all objects globally
 GLOBAL_SCALE_FACTOR = 1.0
 
 
-def scale_by_staff_height_factor(r, global_factor=GLOBAL_SCALE_FACTOR):
+def scale_by_staff_height_factor(r):
     """Scales the number r by the chosen staff's height. The staff
     height factor is the ratio between the desired height of our staff
-    (the global STAFF_HEIGHT) and the height of the chosen reference
+    (the global DESIRED_STAFF_HEIGHT) and the height of the chosen reference
     glyph (which is by default the alto clef, as described by Chlapik
     on page 33). The global scale factor is present to let us control
     scaling globally for all objects.
     """
-    staff_height_factor = STAFF_HEIGHT / get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH,
-                                                   "haydn-11")["height"]
-    return r * global_factor * staff_height_factor
+    raw_staff_height = get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, "haydn-11")["height"]
+    staff_height_factor = DESIRED_STAFF_HEIGHT / raw_staff_height
+    return r * GLOBAL_SCALE_FACTOR * staff_height_factor
 
 
 _LEFT_MARGIN = mm_to_pix(36)
@@ -453,7 +455,7 @@ def _origelems(obj):
 class _Font:
     """Adds font to MChar & Form"""
     def __init__(self, font=None):
-        self.font = font or tuple(_loaded_fonts.keys())[0]
+        self.font = font or tuple(loaded_fonts_dict.keys())[0]
 
 
 class _Observable(_Canvas):
@@ -676,7 +678,7 @@ class _Form(_Canvas, _Font):
         # The following 3 attributes carry information about the
         # height of a Form object. Each Form is created with a default
         # (hypothetical) height, which is equal to the height of the
-        # chosen stave (STAFF_HEIGHT). This hypothetical height
+        # chosen stave (DESIRED_STAFF_HEIGHT). This hypothetical height
         # information can be useful in various contexts, e.g. where
         # reference to the height of the underlying stave is
         # needed. These values are relative to the position of the
