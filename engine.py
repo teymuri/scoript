@@ -69,7 +69,7 @@ _load_fonts()
 def glyph_names(font):
     return _loaded_fonts[font].keys()
 
-def _get_glyph(name, font):
+def get_glyph(name, font):
     return _loaded_fonts[font][name]
 # print(_loaded_fonts)
 
@@ -114,17 +114,18 @@ GLOBAL_SCALE_FACTOR = 1.0
 
 
 def scale_by_staff_height_factor(r, global_factor=GLOBAL_SCALE_FACTOR):
-    """Scales the number r by the chosen staff's height. Staff height
-    factor is the ratio between the desired height of our staff and
-    the height of the reference glyph (which is normally the alto
-    clef, as described by Chlapik pg. 33). The global scale factor is
-    present to let us control this factor globally for all objects.
-
+    """Scales the number r by the chosen staff's height. The staff
+    height factor is the ratio between the desired height of our staff
+    (the global STAFF_HEIGHT) and the height of the chosen reference
+    glyph (which is by default the alto clef, as described by Chlapik
+    on page 33). The global scale factor is present to let us control
+    scaling globally for all objects.
     """
-    staff_height_factor = (4 * STAFF_SPACE) / _get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH,
-                                                         "haydn-11")["height"]
+    staff_height_factor = STAFF_HEIGHT / get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH,
+                                                   "haydn-11")["height"]
     return r * global_factor * staff_height_factor
-breakpoint()
+
+
 _LEFT_MARGIN = mm_to_pix(36)
 _TOP_MARGIN = mm_to_pix(56)
 
@@ -513,7 +514,7 @@ class MChar(_Observable, _Font):
         _Font.__init__(self, font)
         self.name = name
         # self.glyph = _getglyph(self.name, self.font)
-        self._glyph = _get_glyph(self.name, self.font)
+        self._glyph = get_glyph(self.name, self.font)
         # self._se_path = SE.Path(self.glyph, transform)
         # self.bbox = SPT.Path(self.glyph).bbox()
         # self._path = SPT.Path(_get_glyph_d(self.name, self.font))
@@ -683,9 +684,9 @@ class _Form(_Canvas, _Font):
         # should be considered read-only and are updated automatically
         # by the parent Form upon his replacement. Unlike this default
         # height setup, a Form has no pre-existing width.
-        self._abstract_staff_height_top = self.y + scale_by_staff_height_factor(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        self._abstract_staff_height_bottom = self.y + scale_by_staff_height_factor(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
-        self._abstract_staff_height = scale_by_staff_height_factor(_get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
+        self._abstract_staff_height_top = self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        self._abstract_staff_height_bottom = self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        self._abstract_staff_height = scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         
         for D in descendants(self, False):
             D.ancestors.insert(0, self) # Need smteq??
