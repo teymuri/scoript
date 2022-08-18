@@ -9,7 +9,7 @@ if SMT_DIR not in sys.path:
 import action_utils
 from random import choice
 from inspect import currentframe
-from engine import (RuleTable, render, HForm, mm_to_pix)
+from engine import (RuleTable, render, HForm, mm_to_pxl)
 from rules.cmn import (is_simple_timesig, make_simple_timesig)
 from score import (SimpleTimeSig, Clef, Note)
 

@@ -2,7 +2,7 @@
 """
 
 from random import randint, choice
-from engine import DESIRED_STAFF_SPACE, MChar, HForm
+from engine import DESIRED_STAFF_SPACE_IN_PXL, MChar, HForm
 import score as S
 import copy 
 
@@ -71,7 +71,7 @@ def notehead_vertical_pos(note_obj):
     i.e. the middle stave line) to be the bottom edge of the SForm
     (_abstract_staff_height_bottom) + 1 stave space to get C4, half
     stave space to get D4, 0 stave spaces to get the E4, half stave
-    space towards top of page to get F4 (-0.5 * DESIRED_STAFF_SPACE, topwards
+    space towards top of page to get F4 (-0.5 * DESIRED_STAFF_SPACE_IN_PXL, topwards
     our y coordinate is moving negative, downwards positive) etc. The
     rest is to replace the result of aforementioned calculations by a
     certian amount (offset_by_oct below) to transpose to other
@@ -83,13 +83,13 @@ def notehead_vertical_pos(note_obj):
         okt = note_obj.pitch[1]
         # content of octave 4
         pos_on_staff = note_obj._abstract_staff_height_bottom + {
-            "c": 1 * S.E.DESIRED_STAFF_SPACE,
-            "d": 0.5 * S.E.DESIRED_STAFF_SPACE,
-            "e": 0 * S.E.DESIRED_STAFF_SPACE,
-            "f": -0.5 * DESIRED_STAFF_SPACE,
-            "g": -1 * DESIRED_STAFF_SPACE,
-            "a": -1.5 * DESIRED_STAFF_SPACE,
-            "b": -2 * DESIRED_STAFF_SPACE
+            "c": 1 * S.E.DESIRED_STAFF_SPACE_IN_PXL,
+            "d": 0.5 * S.E.DESIRED_STAFF_SPACE_IN_PXL,
+            "e": 0 * S.E.DESIRED_STAFF_SPACE_IN_PXL,
+            "f": -0.5 * DESIRED_STAFF_SPACE_IN_PXL,
+            "g": -1 * DESIRED_STAFF_SPACE_IN_PXL,
+            "a": -1.5 * DESIRED_STAFF_SPACE_IN_PXL,
+            "b": -2 * DESIRED_STAFF_SPACE_IN_PXL
         }[p]
         offset_by_oct = (4 - okt) * 7/8 * note_obj._abstract_staff_height
         note_obj.head_punch.y = pos_on_staff + offset_by_oct
@@ -104,7 +104,7 @@ def make_accidental_char(accobj):
 def setclef(clefobj):
     if clefobj.pitch == "g":
         clefobj.punch = MChar(name="clefs.G",
-                              y=clefobj._abstract_staff_height_bottom - DESIRED_STAFF_SPACE)
+                              y=clefobj._abstract_staff_height_bottom - DESIRED_STAFF_SPACE_IN_PXL)
     # clefobj.punch = MChar(name={"g": "clefs.G", 1:"clefs.C",
     #                                 "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
     #                           rotate=0, canvas_visible=False,
@@ -242,7 +242,7 @@ def addstaff(n):
     x=5
     h=n._abstract_staff_height / 4.0
     for i in range(x):
-        y = i * DESIRED_STAFF_SPACE + n._abstract_staff_height_top
+        y = i * DESIRED_STAFF_SPACE_IN_PXL + n._abstract_staff_height_top
         y_original = i*h + n.top
         # length = n.right - n.x
         l=S.E.HLineSeg(length=n.width, thickness=1, y=y,
@@ -300,7 +300,7 @@ class System(S.E.HForm):
         S.E.HForm.__init__(self, content=cnt, **kw, canvas_visible=False,)
 # s=SForm(width=5,width_locked=0,x=50)
 # s.append(Stem(length=10,thickness=30))
-# h=HForm(content=[s],width=mm_to_pix(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
+# h=HForm(content=[s],width=mm_to_pxl(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
 # F=S.E.RuleTable()
 # def note(pitch, dur, **kwargs):
     # return {"type": "note", "pitch":pitch, "dur":dur,**kwargs}
@@ -323,7 +323,7 @@ class System(S.E.HForm):
 #                      origin_visible=False)
 #               for _ in range(choice(ns))]
 #         ],
-#                       width=S.E.mm_to_pix(W),
+#                       width=S.E.mm_to_pxl(W),
 #                       x=20,
 #                       y=60 + x * 70,
 #                       canvas_visible=False,
