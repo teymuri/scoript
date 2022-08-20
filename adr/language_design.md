@@ -12,14 +12,6 @@ You can use [adr-tools] https://github.com/npryce/adr-tools for managing the ADR
 In each ADR file, write these sections:
 -->
 
-# Title
-Language Design
-
-## Status
-<!---
-What is the status, such as proposed, accepted, rejected, deprecated, superseded, etc.?
--->
-
 ## Context
 <!---
 What is the issue that we're seeing that is motivating this decision or change?
@@ -43,5 +35,10 @@ What becomes easier or more difficult to do because of this change?
 sily write an interface for SMT for any language. 
 - JSON covers inherently _most_ of the needs for describing a score (because it's syntax is near to XML).
 
-### Cons
+## Cons
 - I will be restricted to the syntax json provides, possibly more dynamic actions can't be done (like e.g. having loops etc.)
+
+## Status
+<!---
+What is the status, such as proposed, accepted, rejected, deprecated, superseded, etc.?
+-->
