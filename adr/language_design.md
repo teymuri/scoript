@@ -32,11 +32,16 @@ What is the change that we're proposing and/or doing?
 -->
 Use JSON instead of devising something new.
 
-## Consequences
+
 <!---
 What becomes easier or more difficult to do because of this change?
+## Consequences
 -->
-- No design work invovled (only implementing the JSON-parsing part in Python)
+## Pros
+- No design work will be invovled (only implementing the JSON-parsing part in Python).
 - JSON is universal and easy to generate through any other language, i.e. can ea
 sily write an interface for SMT for any language. 
-- JSON covers inherently _all_ needs for describing a score (because it's syntax is near to XML)
+- JSON covers inherently _most_ of the needs for describing a score (because it's syntax is near to XML).
+
+### Cons
+- I will be restricted to the syntax json provides, possibly more dynamic actions can't be done (like e.g. having loops etc.)
