@@ -112,9 +112,11 @@ def setclef(clefobj):
 
 ############################# punctuation
 
-def decide_unit_dur(dur_counts):
-    # return list(sorted(dur_counts.items()))[1][1]
-    return list(sorted(dur_counts, key=lambda l:l[0]))[0][1]
+def find_ref_dur(dur_counts):
+    """Finds the duration with the most occurrence.
+    This duration will be used as the reference.
+    """
+    return list(sorted(dur_counts, key=lambda lst: lst[0]))[0][1]
 
 # from Gould page 39
 punct_units = {"w":7, "h": 5, "q": 3.5,"8":3.5, "e": 2.5, "s": 2}
@@ -130,7 +132,7 @@ def compute_perf_punct(clocks, w):
         # dur_counts[durs.count(d)] =d
         # dur_counts[d] =durs.count(d)
         dur_counts.append((durs.count(d), d))
-    udur=decide_unit_dur(dur_counts)
+    udur = find_ref_dur(dur_counts)
     uw=w / sum([x[0] * ufactor(udur, x[1]) for x in dur_counts])
     perfwidths = []
     for x in clocks:
