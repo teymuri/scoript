@@ -1,4 +1,5 @@
 """
+This file contains rules for engraving Common Music Notation.
 """
 
 from random import randint, choice
@@ -113,16 +114,17 @@ def setclef(clefobj):
 ############################# punctuation
 
 def find_ref_dur(dur_counts):
-    """Finds the duration with the most occurrence.
-    This duration will be used as the reference.
+    """Returns the duration name with the largest number of occurrences.
     """
     return list(sorted(dur_counts, key=lambda lst: lst[0]))[0][1]
 
 # from Gould page 39
-punct_units = {"w":7, "h": 5, "q": 3.5,"8":3.5, "e": 2.5, "s": 2}
+DURS_SPACE_PROPORTION_DICT = {
+    "w":7, "h": 5, "q": 3.5,"8":3.5, "e": 2.5, "s": 2
+}
 
 def ufactor(udur, dur2):
-    return punct_units[dur2] / punct_units[udur]
+    return DURS_SPACE_PROPORTION_DICT[dur2] / DURS_SPACE_PROPORTION_DICT[udur]
     
 def compute_perf_punct(clocks, w):
     # notes=list(filter(lambda x:isinstance(x, Note), clocks))
