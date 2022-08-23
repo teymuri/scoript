@@ -1,5 +1,4 @@
 
-
 <!---
 Decision record template by Michael Nygard
 
@@ -10,13 +9,13 @@ You can use [adr-tools] https://github.com/npryce/adr-tools for managing the ADR
 In each ADR file, write these sections:
 -->
 
-## Context
+# Context
 <!---
 What is the issue that we're seeing that is motivating this decision or change?
 -->
 Should a new language be devised, or could needs be covered with json?
 
-## Decision
+# Decision
 <!---
 What is the change that we're proposing and/or doing?
 -->
@@ -37,7 +36,7 @@ sily write an interface for SMT for any language.
 - I will be restricted to the syntax json provides, e.g. can't define variables, can't have loops etc. (the interface will be as static as json is).
 - No chance for re-using parts, like having violins in one file, piano in another and import them in a third file to combine (the interface will not be modular).
 
-## Status
+# Status
 <!---
 What is the status, such as proposed, accepted, rejected, deprecated, superseded, etc.?
 -->
