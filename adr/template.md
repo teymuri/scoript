@@ -11,13 +11,13 @@ In each ADR file, write these sections:
 <!---
 What is the issue that we're seeing that is motivating this decision or change?
 -->
-## Context
+# Context
 
 
 <!---
 What is the change that we're proposing and/or doing?
 -->
-## Decision
+# Decision
 
 
 <!---
@@ -32,4 +32,4 @@ What becomes easier or more difficult to do because of this change? (Consequence
 <!---
 What is the status, such as proposed, accepted, rejected, deprecated, superseded, etc.?
 -->
-## Status
+# Status
