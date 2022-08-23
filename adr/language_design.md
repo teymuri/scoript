@@ -1,7 +1,6 @@
 
 
 
-
 <!---
 Decision record template by Michael Nygard
 
@@ -36,7 +35,7 @@ sily write an interface for SMT for any language.
 - JSON covers inherently _most_ of the needs for describing a score (because it's syntax is near to XML).
 
 ## Cons
-- I will be restricted to the syntax json provides, possibly more dynamic actions can't be done (like e.g. having loops etc.)
+- I will be restricted to the syntax json provides, e.g. can't define variables, can't have loops etc. The interface will be as static as json is.
 
 ## Status
 <!---
