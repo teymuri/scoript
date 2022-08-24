@@ -3,8 +3,9 @@ This file contains rules for engraving Common Music Notation.
 """
 
 from random import randint, choice
-from engine import DESIRED_STAFF_SPACE_IN_PXL, MChar, HForm
+from engine import DESIRED_STAFF_SPACE_IN_PXL, MChar, HForm, CMN
 import score as S
+from score import Note, Clef, SimpleTimeSig
 import copy 
 
 ################ time signature
@@ -119,12 +120,15 @@ def find_ref_dur(dur_counts):
     return list(sorted(dur_counts, key=lambda lst: lst[0]))[0][1]
 
 # from Gould page 39
-DURS_SPACE_PROPORTION_DICT = {
+DURS_SPACE_PROPORTION = {
     "w":7, "h": 5, "q": 3.5,"8":3.5, "e": 2.5, "s": 2
 }
 
-def ufactor(udur, dur2):
-    return DURS_SPACE_PROPORTION_DICT[dur2] / DURS_SPACE_PROPORTION_DICT[udur]
+def _dur_ref_ratio(dur, ref_dur):
+    """Returns the ratio of the duration's space proportion to
+    the reference duration's space proportion.
+    """
+    return DURS_SPACE_PROPORTION[dur] / DURS_SPACE_PROPORTION[ref_dur]
     
 def compute_perf_punct(clocks, w):
     # notes=list(filter(lambda x:isinstance(x, Note), clocks))
@@ -135,25 +139,67 @@ def compute_perf_punct(clocks, w):
         # dur_counts[d] =durs.count(d)
         dur_counts.append((durs.count(d), d))
     udur = find_ref_dur(dur_counts)
-    uw=w / sum([x[0] * ufactor(udur, x[1]) for x in dur_counts])
+    uw=w / sum([x[0] * _dur_ref_ratio(x[1],udur) for x in dur_counts])
     perfwidths = []
     for x in clocks:
         # a space is excluding the own width of the clock (it's own char width)
-        space = ((uw * ufactor(udur, x.duration)) - x.width)
+        space = ((uw * _dur_ref_ratio(x.duration, udur)) - x.width)
         perfwidths.append(space)
-        # x.width += ((uw * ufactor(udur, x.duration)) - x.width)
+        # x.width += ((uw * _dur_ref_ratio(udur, x.duration)) - x.width)
     return perfwidths
 
 def right_guard(obj):
     return {S.Note: 2, S.Clef:0,
             S.Accidental: 2,
             S.SimpleTimeSig: 0}[type(obj)]
+
+RIGHT_MARGIN_DICT = {
+    Clef: DESIRED_STAFF_SPACE_IN_PXL * 4,
+    SimpleTimeSig: DESIRED_STAFF_SPACE_IN_PXL
+}
+
 def first_clock_idx(l):
     for i,x in enumerate(l):
         if isinstance(x, S.Clock):
             return i
-            
-            
+
+def durs_to_count_dict(valued_objs_list) -> dict[str, int]:
+    durs_list = [obj.duration for obj in valued_objs_list]
+    return {dur: durs_list.count(dur) for dur in set(durs_list)}
+    # return [(durs_list.count(dur), dur) for dur in set(durs_list)]
+
+# Note that durations MUST BE strings!
+def _find_ref_dur(durs_to_count: dict[str, int]) -> str:
+    return max(durs_to_count, key=durs_to_count.get)
+
+    
+def rule_horizontal_spacing(hform):
+    # get sum of all non-valued character's width of the staff
+    non_valued_objs = [x for x in hform.content if not isinstance(x, Note)]
+    non_valued_objs_width = sum([x.width + RIGHT_MARGIN_DICT[type(x)] for x in non_valued_objs])
+    # get the remaining space for valued objs
+    rem_width = hform.width - non_valued_objs_width
+    # compute ideal widths for notes ()
+    valued_objs = [x for x in hform.content if isinstance(x, Note)]
+    durs_to_count = durs_to_count_dict(valued_objs)
+    ref_dur: str = _find_ref_dur(durs_to_count)
+    # ideal width for the reference duration
+    ref_dur_width = rem_width / sum([v * _dur_ref_ratio(k, ref_dur) for k, v in durs_to_count.items()])
+    valued_objs_space: list = [(ref_dur_width * _dur_ref_ratio(obj.duration, ref_dur) - obj.width) for obj in valued_objs]
+    if all([isinstance(x, Note) for x in hform.content]):
+        for obj, width in zip(hform.content, valued_objs_space):
+            obj.width += width
+            obj._width_locked = True
+    else:
+        valued_obj_idx = 0
+        for obj in hform.content:
+            if isinstance(obj, Note):
+                obj.width += valued_objs_space[valued_obj_idx]
+                valued_obj_idx += 1
+                obj._width_locked = True
+            else:
+                obj.width += RIGHT_MARGIN_DICT[type(obj)]
+    
 def punctsys(h):
     # print("---punct----")
     first_clock_idx_ = first_clock_idx(h.content)
@@ -214,12 +260,15 @@ S.E.CMN.unsafeadd(make_accidental_char, isacc, "Making Accidental Characters",)
 # e.CMN.unsafeadd(greenhead, noteandtreble)
 # S.E.CMN.unsafeadd(setstem, isnote, "Set stems",)
 S.E.CMN.unsafeadd(setclef, isclef, "Make clefs",)
-# S.E.CMN.unsafeadd(opachead, isnote)
-S.E.CMN.unsafeadd(punctsys,
-                  # isline,
-                  lambda x: isinstance(x, HForm),
-                  "Punctuate",)
 
+# S.E.CMN.unsafeadd(punctsys,
+#                   # isline,
+#                   lambda x: isinstance(x, HForm),
+#                   "Punctuate",)
+
+CMN.unsafeadd(rule_horizontal_spacing,
+              lambda x: isinstance(x, HForm),
+              "horizontal_spacing,")
 
 def setbm(l):
     o=[x for x in l.content if isnote(x) and x.duration in ("q","h")] #note mit openbeam
