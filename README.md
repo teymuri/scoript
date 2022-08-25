@@ -1,5 +1,8 @@
 # Symbolic Music Typesetting
 
+## Dependencies
+- Python 3.5 or higher
+
 ## Thinking in Rules
 ### How to thinkg when I'm about to add new rules to a table
 Generally how defining new rules happens is as follows:
