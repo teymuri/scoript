@@ -13,3 +13,12 @@ Generally how defining new rules happens is as follows:
 
 ## SVG measurements
 are by default (if not correct them) in pixels only.
+
+## Coordinate Movement of Objects
+When you move an object's y coordinate
+- upwards is decrementing (-)
+- downwards is incrementing (+)
+
+When moving an object's x coordinate
+- to the right is ?
+- to the left is ?
