@@ -1,29 +1,43 @@
+import sys
+import os
+
+TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+SMT_DIR = os.path.dirname(TEST_DIR)
+if SMT_DIR not in sys.path:
+    sys.path.append(SMT_DIR)
+
+import random
+from engine import (RuleTable, render, HForm, mm_to_px, HLineSeg,
+                    DESIRED_STAFF_SPACE_IN_PXL, Char, CMN, VLineSeg)
+from score import (SimpleTimeSig, Clef, Note, Barline, Staff)
+
+
 """
 This file contains rules for engraving Common Music Notation.
 """
 
 from random import randint, choice
-from engine import DESIRED_STAFF_SPACE_IN_PXL, MChar, HForm, CMN
+# from engine import DESIRED_STAFF_SPACE_IN_PXL, Char, HForm, CMN, VLineSeg
 import score as S
-from score import Note, Clef, SimpleTimeSig
+# from score import Note, Clef, SimpleTimeSig, Staff, Barline
 import copy 
 
 ################ time signature
 
 def is_simple_timesig(x): return isinstance(x, S.SimpleTimeSig)
-def make_simple_timesig(ts):
+def set_simple_timesig_chars(ts):
     """this is the ultimate, the one and the only guy putting
     together and punching time sigs"""
-    ts.num_punch=S.E.MChar({3: "three", 4:"four", 5:"five"}.get(ts.num, ".notdef"),
+    ts.num_char=S.E.Char({3: "three", 4:"four", 5:"five"}.get(ts.num, ".notdef"),
                            canvas_visible=False,
                            origin_visible=False)
-    ts.denom_punch=S.E.MChar({4: "four", 2:"two", 1: "one"}.get(ts.denom, ".notdef"),
+    ts.denom_char=S.E.Char({4: "four", 2:"two", 1: "one"}.get(ts.denom, ".notdef"),
                              canvas_visible=False,
                              origin_visible=False)
     # I'm shifting the 1 here because I know the font's properties?
     if ts.denom == 1:
-        d=ts.denom_punch.parent().width - ts.denom_punch.width
-        ts.denom_punch.right = ts.denom_punch.parent().right
+        d=ts.denom_char.parent().width - ts.denom_char.width
+        ts.denom_char.right = ts.denom_char.parent().right
         
 
 
@@ -36,7 +50,7 @@ def make_simple_timesig(ts):
 def make_notehead(note):
     # setter for head? to append automatically
     if isinstance(note.duration, str):
-        note.head_punch = S.E.MChar(name={
+        note.head_punch = S.E.Char(name={
             "w": "noteheads.s0",
             "h": "noteheads.s1",
             "q": "noteheads.s2",
@@ -44,7 +58,7 @@ def make_notehead(note):
                                     canvas_visible=False,
                                     origin_visible=False)
     # elif isinstance(note.duration, (float, int)):
-        # note.head_punch = S.E.MChar(name={
+        # note.head_punch = S.E.Char(name={
             # 1: "noteheads.s0",
             # .5: "noteheads.s1",
             # .25: "noteheads.s2"
@@ -100,14 +114,14 @@ def notehead_vertical_pos(note_obj):
 
 def make_accidental_char(accobj):
     if not accobj.punch:
-        accobj.punch = S.E.MChar(name="accidentals.sharp", canvas_visible=False,
+        accobj.punch = S.E.Char(name="accidentals.sharp", canvas_visible=False,
                      origin_visible=False)
 
-def setclef(clefobj):
+def set_clef_char(clefobj):
     if clefobj.pitch == "g":
-        clefobj.punch = MChar(name="clefs.G",
+        clefobj.char = Char(name="clefs.G",
                               y=clefobj._abstract_staff_height_bottom - DESIRED_STAFF_SPACE_IN_PXL)
-    # clefobj.punch = MChar(name={"g": "clefs.G", 1:"clefs.C",
+    # clefobj.punch = Char(name={"g": "clefs.G", 1:"clefs.C",
     #                                 "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
     #                           rotate=0, canvas_visible=False,
     #                           origin_visible=False)
@@ -153,8 +167,9 @@ def right_guard(obj):
             S.Accidental: 2,
             S.SimpleTimeSig: 0}[type(obj)]
 
-RIGHT_MARGIN_DICT = {
-    Clef: DESIRED_STAFF_SPACE_IN_PXL * 4,
+RIGHT_MARGIN = {
+    Clef: DESIRED_STAFF_SPACE_IN_PXL,
+    Barline: DESIRED_STAFF_SPACE_IN_PXL,
     SimpleTimeSig: DESIRED_STAFF_SPACE_IN_PXL
 }
 
@@ -173,18 +188,25 @@ def _find_ref_dur(durs_to_count: dict[str, int]) -> str:
     return max(durs_to_count, key=durs_to_count.get)
 
     
-def rule_horizontal_spacing(hform):
+def do_horizontal_spacing(hform):
+    # breakpoint()
     # get sum of all non-valued character's width of the staff
     non_valued_objs = [x for x in hform.content if not isinstance(x, Note)]
-    non_valued_objs_width = sum([x.width + RIGHT_MARGIN_DICT[type(x)] for x in non_valued_objs])
+    # non_valued_objs_space = sum([x.width + RIGHT_MARGIN[type(x)] for x in non_valued_objs])
+    non_valued_objs_space = 0
+    for x in non_valued_objs:
+        non_valued_objs_space += x.width
+        if not (isinstance(x, Barline) and x.is_last_child()):
+            non_valued_objs_space += RIGHT_MARGIN[type(x)]
     # get the remaining space for valued objs
-    rem_width = hform.width - non_valued_objs_width
+    remain_space = hform.width - non_valued_objs_space
     # compute ideal widths for notes ()
     valued_objs = [x for x in hform.content if isinstance(x, Note)]
     durs_to_count = durs_to_count_dict(valued_objs)
     ref_dur: str = _find_ref_dur(durs_to_count)
+    ref_dur_count = sum([v * _dur_ref_ratio(k, ref_dur) for k, v in durs_to_count.items()])
     # ideal width for the reference duration
-    ref_dur_width = rem_width / sum([v * _dur_ref_ratio(k, ref_dur) for k, v in durs_to_count.items()])
+    ref_dur_width = remain_space / ref_dur_count
     valued_objs_space: list = [(ref_dur_width * _dur_ref_ratio(obj.duration, ref_dur) - obj.width) for obj in valued_objs]
     if all([isinstance(x, Note) for x in hform.content]):
         for obj, width in zip(hform.content, valued_objs_space):
@@ -198,7 +220,10 @@ def rule_horizontal_spacing(hform):
                 valued_obj_idx += 1
                 obj._width_locked = True
             else:
-                obj.width += RIGHT_MARGIN_DICT[type(obj)]
+                # A barline at the end of the staff doesn't need it's
+                # right margin.
+                if not (isinstance(obj, Barline) and obj.is_last_child()):
+                    obj.width += RIGHT_MARGIN[type(obj)]
     
 def punctsys(h):
     # print("---punct----")
@@ -246,29 +271,6 @@ def ish(x): return isinstance(x, e.HForm)
 def isclef(x): return isinstance(x, S.Clef)
 def opachead(n): n.head_punch.opacity = .3
 
-# Rules adding
-"""
-hook mehrmals überall, 
-test
-"""
-# The single argument to rule hooks are every objects defined in your
-# score.
-S.E.CMN.unsafeadd(make_simple_timesig,is_simple_timesig,"Set Time...",)
-S.E.CMN.unsafeadd(make_notehead, noteandtreble, "make noteheads",)
-S.E.CMN.unsafeadd(notehead_vertical_pos, noteandtreble, "note vertical position")
-S.E.CMN.unsafeadd(make_accidental_char, isacc, "Making Accidental Characters",)
-# e.CMN.unsafeadd(greenhead, noteandtreble)
-# S.E.CMN.unsafeadd(setstem, isnote, "Set stems",)
-S.E.CMN.unsafeadd(setclef, isclef, "Make clefs",)
-
-# S.E.CMN.unsafeadd(punctsys,
-#                   # isline,
-#                   lambda x: isinstance(x, HForm),
-#                   "Punctuate",)
-
-CMN.unsafeadd(rule_horizontal_spacing,
-              lambda x: isinstance(x, HForm),
-              "horizontal_spacing,")
 
 def setbm(l):
     o=[x for x in l.content if isnote(x) and x.duration in ("q","h")] #note mit openbeam
@@ -284,11 +286,6 @@ def setbm(l):
     # c.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
 
 
-# S.E.CMN.unsafeadd(setbm, isline,
-#                   "Setting the beams, after noteheads are fixed (punctuated)"
-#                   )
-
-# "Set beams after Noten stehen fest (punctuation)",
 
 
 def addstaff(n):
@@ -296,7 +293,7 @@ def addstaff(n):
     h=n._abstract_staff_height / 4.0
     for i in range(x):
         y = i * DESIRED_STAFF_SPACE_IN_PXL + n._abstract_staff_height_top
-        y_original = i*h + n.top
+        y_original_which_was_wrong = i*h + n.top
         # length = n.right - n.x
         l=S.E.HLineSeg(length=n.width, thickness=1, y=y,
                        x = n.left,
@@ -304,9 +301,6 @@ def addstaff(n):
                        origin_visible=True)
         n.append(l)
     
-S.E.CMN.unsafeadd(addstaff,
-                  lambda obj: isnote(obj) or isclef(obj) or is_simple_timesig(obj),
-                  "Draws stave ontop/behind(?)")
 
 
 def skew(stave):
@@ -314,13 +308,31 @@ def skew(stave):
     stave.skewx = 50
     print(stave.skewx)
 def ishline(x): return isinstance(x,S.E.HLineSeg)
+def is_barline(x): return isinstance(x, Barline)
+def place_barline(barline):
+    # note = barline.ancestors[0].content[-2]
+    note = barline.direct_older_sibling()
+    barline.length = note._abstract_staff_height + Staff.THICKNESS
+    barline.x = note.right
+    barline.y = note._abstract_staff_height_top - Staff.THICKNESS * .5
+def set_barline_char(obj):
+    # obj is a barline object
+    obj.char = VLineSeg(length=obj._abstract_staff_height + Staff.THICKNESS,
+                        thickness=Barline.THICKNESS,
+                        y=obj._abstract_staff_height_top - Staff.THICKNESS * .5,
+                        # a barline is normally used after a note or a rest
+                        x=obj.direct_older_sibling().right,
+                        canvas_visible=True,
+                        canvas_opacity=0.1,
+                        visible=True)
+
 # S.E.CMN.add(skew, isline, "SKEW stave")
 # S.E.CMN.unsafeadd(skew, isline, "SKEW stave")
 
 def flag(note):
     if note.duration != 1:
         # print(note.stem_graver.y)
-        note.append(S.E.MChar(name="flags.d4",y=note.stem_graver.bottom,x=note.x+.5,
+        note.append(S.E.Char(name="flags.d4",y=note.stem_graver.bottom,x=note.x+.5,
         origin_visible=1))
 # S.E.CMN.add(flag, isnote, "Flags...")
 # print(S.E._glyph_names("haydn-11"))
@@ -335,52 +347,88 @@ def flag(note):
 
 
 
-# 680.3149 pxl
-# gemischt=[
-# Note(domain="treble", duration=1, pitch=["c",4]),
-# Accidental(pitch=["c", 4],domain="treble",),
-# Accidental(domain="treble"), 
-# # Clef(pitch="g",domain="treble"),
-# Accidental(domain="treble"),
-# Note(pitch=["d",4],domain="treble", duration=.5),
-# Note(pitch=["d",4],domain="treble", duration=.25),
-# # Clef(domain="treble",pitch="bass"),
-# Accidental(domain="treble",pitch=["d",4])
-# ]
+# Rules adding
+"""
+hook mehrmals überall, 
+test
+"""
+# The single argument to rule hooks are every objects defined in your
+# score.
+S.E.CMN.unsafeadd(set_simple_timesig_chars,
+                  is_simple_timesig,"Set Time...",)
+S.E.CMN.unsafeadd(make_notehead, noteandtreble, "make noteheads",)
+S.E.CMN.unsafeadd(notehead_vertical_pos, noteandtreble, "note vertical position")
+S.E.CMN.unsafeadd(make_accidental_char, isacc, "Making Accidental Characters",)
+# e.CMN.unsafeadd(greenhead, noteandtreble)
 
-class System(S.E.HForm):
-    def __init__(self, cnt, **kw):
-        S.E.HForm.__init__(self, content=cnt, **kw, canvas_visible=False,)
-# s=SForm(width=5,width_locked=0,x=50)
-# s.append(Stem(length=10,thickness=30))
-# h=HForm(content=[s],width=mm_to_pxl(20),x=40,y=200, canvas_opacity=.2, width_locked=0)
-# F=S.E.RuleTable()
-# def note(pitch, dur, **kwargs):
-    # return {"type": "note", "pitch":pitch, "dur":dur,**kwargs}
-# def sethead(n):
-    # print(n["dur"])
-    # return S.E.SForm(content=S.E.MChar(n["name"]))
-# print(sethead(note(0,1,name="noteheads.s0")))
-# if __name__=="__main__":
-#     ns = (5, 10, 15, 20, 25, 30, 35, 40, 45, 50)
-#     W = 270
-#     hs = []
-#     for x in range(22):
-#         h = S.E.HForm(content=[
-#             S.Clef(pitch=choice(("g", "f")), canvas_visible=False, origin_visible=False),
-#             S.SimpleTimeSig(denom=1, canvas_visible=False,origin_visible=False),
-#             *[S.Note(domain="treble",
-#                      duration=choice(["q", "h", "w"]),
-#                      pitch=[choice(["c", "d"]), 5],
-#                      canvas_visible=False,
-#                      origin_visible=False)
-#               for _ in range(choice(ns))]
-#         ],
-#                       width=S.E.mm_to_pxl(W),
-#                       x=20,
-#                       y=60 + x * 70,
-#                       canvas_visible=False,
-#                       origin_visible=False)
-#         hs.append(h)
-    
-#     S.E.render(*hs)
+S.E.CMN.unsafeadd(setstem, isnote, "Set stems",)
+
+S.E.CMN.unsafeadd(set_clef_char, isclef, "Make clefs",)
+
+# S.E.CMN.unsafeadd(punctsys,
+#                   # isline,
+#                   lambda x: isinstance(x, HForm),
+#                   "Punctuate",)
+CMN.unsafeadd(set_barline_char, lambda obj: is_barline(obj), "placing barlines")
+
+CMN.unsafeadd(do_horizontal_spacing,
+              lambda x: isinstance(x, HForm),
+              "do_horizontal_spacing,")
+
+CMN.unsafeadd(Staff.make,
+              lambda obj: isnote(obj) or \
+              isclef(obj) or \
+              is_simple_timesig(obj) or \
+              # False,
+              is_barline(obj) and not obj.is_last_child(),
+              "Draws stave ontop/behind(?)")
+
+if __name__ == "__main__":
+    h = HForm(content=[
+        Clef(pitch="g", canvas_visible=False, origin_visible=False),
+        SimpleTimeSig(denom=4, canvas_visible=False, origin_visible=False),
+        Note(domain="treble",
+             duration="q",
+             pitch=["f", 5]),
+        Note(domain="treble",
+             duration="q",
+             pitch=["f", 5]),
+        Note(domain="treble",
+             duration="q",
+             pitch=["f", 5]),
+        Note(domain="treble",
+             duration="q",
+             pitch=["g", 5]),
+        Barline(),
+        Note(domain="treble",
+             duration="h",
+             pitch=["a", 5]),
+        Note(domain="treble",
+             duration="h",
+             pitch=["g", 5]),
+        Barline(),
+        Note(domain="treble",
+             duration="q",
+             pitch=["f", 5]),
+        Note(domain="treble",
+             duration="q",
+             pitch=["a", 5]),
+        Note(domain="treble",
+             duration="q",
+             pitch=["g", 5]),
+        Note(domain="treble",
+             duration="q",
+             pitch=["g", 5]),
+        Barline(),
+        Note(domain="treble",
+             duration="w",
+             pitch=["f", 5]),
+        Barline()
+    ],
+              width=mm_to_px(270),
+              x=20,
+              y=60,
+              canvas_visible=True,
+              origin_visible=True)
+    print(h.width)
+    render(h, path="/tmp/test.svg")

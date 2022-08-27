@@ -13,14 +13,14 @@ LPAR = "("
 RPAR = ")"
 
 SMTCONS = {x.__name__.lower(): x for x in (
-        E.SForm, E.HForm, E.VForm, E.MChar,
+        E.SForm, E.HForm, E.VForm, E.Char,
         Note, SimpleTimeSig, Clef
     )
 }
 
 TYPENV = {t.__name__.lower(): t for t in (
         list, int, float, str,
-        E.SForm, E.HForm, E.VForm, E.MChar,
+        E.SForm, E.HForm, E.VForm, E.Char,
         Note, Clef
     )
 }

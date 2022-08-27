@@ -14,7 +14,6 @@ import svgelements as SE
 import svgpathtools as SPT
 from math import atan2, hypot
 
-
 ##### Font
 
 SVG_NAMESPACE = {"ns": "http://www.w3.org/2000/svg"}
@@ -91,7 +90,7 @@ STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
 # 1 mm = 3.7795275591 pixels
 MM_PIX_FACTOR = 3.7795275591
 
-def mm_to_pxl(mm):
+def mm_to_px(mm):
     """Converts millimeter to pixels. 
     """
     return mm * MM_PIX_FACTOR
@@ -108,8 +107,8 @@ CHLAPIK_STAFF_SPACES_IN_MM = {
     5: 1.532, 6: 1.4, 7: 1.19, 8: 1.02
 }
 
-DESIRED_STAFF_HEIGHT_IN_PXL = mm_to_pxl(GOULD_STAFF_HEIGHTS_IN_MM[0])
-DESIRED_STAFF_SPACE_IN_PXL = mm_to_pxl(GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
+DESIRED_STAFF_HEIGHT_IN_PXL = mm_to_px(GOULD_STAFF_HEIGHTS_IN_MM[0])
+DESIRED_STAFF_SPACE_IN_PXL = mm_to_px(GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
 
 # This factor should be used to scale all objects globally
 GLOBAL_SCALE_FACTOR = 1.0
@@ -128,8 +127,8 @@ def scale_by_staff_height_factor(r):
     return r * GLOBAL_SCALE_FACTOR * staff_height_factor
 
 
-_LEFT_MARGIN = mm_to_pxl(36)
-_TOP_MARGIN = mm_to_pxl(56)
+_LEFT_MARGIN = mm_to_px(36)
+_TOP_MARGIN = mm_to_px(56)
 
 
 
@@ -153,7 +152,7 @@ def descendants(obj, lastgen_first=True):
 
 
 def members(obj):
-    """returns a list containing the object itself and all it's children.
+    """Returns a list containing the object itself and all it's children.
     """
     return [obj] + descendants(obj, lastgen_first=False)
 
@@ -233,39 +232,85 @@ _RT = CMN = COMMON_MUSIC_NOTATION = RuleTable(name="CMN")
 
 
 _registry = {}
-def getbyid(id_): return _registry[id_]
+def getbyid(id): return _registry[id]
 
-class _SMTObject:
-    def __init__(self, id_=None, domain=None,
+class _Identifiable:
+    """?"""
+    def __init__(self, id_class=None):
+        self.id = self.assign_id(id_class)
+    
+    def assign_id(self, id_class):
+        id = f"{id_class.__name__}{id_class.id_counter}"
+        id_class.id_counter += 1
+        return id
+
+class _SMTPath(_Identifiable, SW.path.Path):
+    id_counter = 0
+    def __init__(self, is_bbox=False, main_obj_id=None, **kwargs):
+        _Identifiable.__init__(self, kwargs.pop("id_class", self.__class__))
+        # Pass the just created id to svgwrite.path.Path, otherwise
+        # it will use it's own id (which is something like path1234).
+        if is_bbox:
+            kwargs["id"] = f"{self.id}-BBox-for-{main_obj_id}"
+        else:
+            kwargs["id"] = self.id
+        SW.path.Path.__init__(self, **kwargs)
+
+class _SMTObject(_Identifiable):
+    id_counter = 0
+    def __init__(self, domain=None, id=None, id_class=None,
                  # We use the Common Music Notation as default rule
                  # table.
                  ruletable=COMMON_MUSIC_NOTATION,
                  toplevel=False):
+        _Identifiable.__init__(self, id_class or _SMTObject)
         self.toplevel = toplevel
         self.ancestors = []
-        self.id = id_ or self.assign_id()
+        # self.id = id or self.assign_id()
         self._svg_list = []
         self.domain = domain
         # self.ruletable = ruletable or COMMON_MUSIC_NOTATION
         self.ruletable = ruletable
+        # self.index = self._get_index()
         _registry[self.id] = self
 
-    def _pack_svg_list_ip(self): self._notimplemented("_pack_svg_list_ip")
+    def pack_svg_list(self): self._notimplemented("pack_svg_list")
     
     def _notimplemented(self, method_name):
         """Crashs if the derived class hasn't implemented this important method."""
         raise NotImplementedError(f"{self.__class__.__name__} must override {method_name}!")
     
-    def assign_id(self):
-        id_ = f"{self.__class__.__name__}{self.__class__.id_counter}"
-        self.__class__.id_counter += 1
-        return id_
-
     def addsvg(self, *elements):
         self._svg_list.extend(elements)
 
-    def parent(self): return self.ancestors[-1]
-    def root(self): return self.ancestors[0]
+    # NOTE: following methods couldn't have been written as a at
+    # init-time initialized attribute, since the parental relationship
+    # which is crucial for these functions is possibly not set at
+    # init-time yet.
+    def parent(self):
+        return self.ancestors[-1]
+    
+    def root(self):
+        return self.ancestors[0]
+    
+    def siblings(self):
+        return self.parent().content
+    
+    def direct_older_sibling(self):
+        siblings = self.siblings()
+        for i, obj in enumerate(siblings):
+            if obj is self and i != 0:
+                return siblings[i - 1]
+
+    def index(self):
+        for i, x in enumerate(self.siblings()):
+            if x is self:
+                return i
+
+    def is_last_child(self):
+        """Returns true if this object is the last of it's parent's
+        children."""
+        return self.index() == len(self.siblings()) - 1
     
     def _apply_rules(self):
         """
@@ -319,11 +364,11 @@ def page_size(use):
     """Behind Bards, pg. 481, portrait formats (height, width)
     largest (A3) = Largest practical """
     return {
-        "largest": (mm_to_pxl(420), mm_to_pxl(297)), 
-        "largest_instrumental": (mm_to_pxl(353), mm_to_pxl(250)),
-        "smallest_instrumental": (mm_to_pxl(297), mm_to_pxl(210)),
-        "printed_sheet_music": (mm_to_pxl(305), mm_to_pxl(229)),
-        "printed_choral_music": (mm_to_pxl(254), mm_to_pxl(178))
+        "largest": (mm_to_px(420), mm_to_px(297)), 
+        "largest_instrumental": (mm_to_px(353), mm_to_px(250)),
+        "smallest_instrumental": (mm_to_px(297), mm_to_px(210)),
+        "printed_sheet_music": (mm_to_px(305), mm_to_px(229)),
+        "printed_choral_music": (mm_to_px(254), mm_to_px(178))
     }[use]
 
 PAGEH, PAGEW = page_size("largest")
@@ -335,7 +380,7 @@ def render(*items, path="/tmp/smt"):
     for item in items:
         item._apply_rules()
         # Form's packsvglst will call packsvglst on descendants recursively
-        item._pack_svg_list_ip()
+        item.pack_svg_list()
         for elem in item._svg_list:
             drawing.add(elem)
     drawing.save(pretty=True)
@@ -431,35 +476,44 @@ class _Canvas(_SMTObject):
                                 # size=(obj.width, obj.height), 
                                 # fill=obj.canvas_color,
                                 # fill_opacity=obj.canvas_opacity, 
-                                # id_=obj.id + "BBox")
+                                # id=obj.id + "BBox")
 
 _ORIGIN_CROSS_LEN = 20
 _ORIGIN_CIRCLE_R = 4
 _ORIGIN_LINE_THICKNESS = 0.06
-def _origelems(obj):
+def origin_elems(obj, main_obj_id):
     halfln = _ORIGIN_CROSS_LEN / 2
     return [SW.shapes.Circle(center=(obj.x, obj.y), r=_ORIGIN_CIRCLE_R,
-                                    id_=obj.id + "OriginCircle",
-                                    stroke=SW.utils.rgb(87, 78, 55), fill="none",
-                                    stroke_width=_ORIGIN_LINE_THICKNESS),
+                             # id=obj.id + "OriginCircle",
+                             id=f"OriginCircle-for-{main_obj_id}",
+                             stroke=SW.utils.rgb(87, 78, 55), fill="none",
+                             stroke_width=_ORIGIN_LINE_THICKNESS),
             SW.shapes.Line(start=(obj.x-halfln, obj.y), end=(obj.x+halfln, obj.y),
-                                        id_=obj.id + "OriginHLine",
-                                        stroke=SW.utils.rgb(87, 78, 55), 
-                                        stroke_width=_ORIGIN_LINE_THICKNESS),
+                           # id=obj.id + "OriginHLine",
+                           id=f"OriginHLine-for-{main_obj_id}",
+                           stroke=SW.utils.rgb(87, 78, 55), 
+                           stroke_width=_ORIGIN_LINE_THICKNESS),
             SW.shapes.Line(start=(obj.x, obj.y-halfln), end=(obj.x, obj.y+halfln),
-                                        id_=obj.id + "OriginVLine",
-                                        stroke=SW.utils.rgb(87, 78, 55), 
-                                        stroke_width=_ORIGIN_LINE_THICKNESS)]
+                           # id=obj.id + "OriginVLine",
+                           id=f"OriginVLine-for-{main_obj_id}",
+                           stroke=SW.utils.rgb(87, 78, 55), 
+                           stroke_width=_ORIGIN_LINE_THICKNESS)]
 
 
 class _Font:
-    """Adds font to MChar & Form"""
+    """Adds font to Char & Form"""
     def __init__(self, font=None):
         self.font = font or tuple(loaded_fonts_dict.keys())[0]
 
 
-class _Observable(_Canvas):
-    
+class _View(_Canvas):
+    """A view is a something which is drawn on a canvas and which can
+    be observed on its own, e.g. a character, a line etc. This is in
+    contrast to a form which is a container for other objects and can
+    not be observed on it's own (you can see it's canvas, but not the
+    form itself!).
+
+    """
     def __init__(self, color=None, opacity=None, visible=True, **kwargs):
         super().__init__(**kwargs)
         self.color = color or SW.utils.rgb(0, 0, 0)
@@ -507,12 +561,9 @@ class _Observable(_Canvas):
 
 
 
-class MChar(_Observable, _Font):
-    
-    id_counter = 0
-
+class Char(_View, _Font):
     def __init__(self, name, font=None, **kwargs):
-        _Observable.__init__(self, **kwargs)
+        _View.__init__(self, **kwargs)
         _Font.__init__(self, font)
         self.name = name
         # self.glyph = _getglyph(self.name, self.font)
@@ -572,7 +623,7 @@ class MChar(_Observable, _Font):
             
     # @_Canvas.width.setter
     # def width(self, neww):
-        # raise Exception("MChar's width is immutable!")
+        # raise Exception("Char's width is immutable!")
 
     # def _compute_left(self):
         # return self.x + scale_by_staff_height_factor(self.glyph["left"])
@@ -592,13 +643,13 @@ class MChar(_Observable, _Font):
     # def _compute_height(self):
         # return scale_by_staff_height_factor(self.glyph["height"])
     
-    # def _pack_svg_list_ip(self):
+    # def pack_svg_list(self):
         # # Add bbox rect
         # if self.canvas_visible:
             # self._svg_list.append(_bboxelem(self))
         # # Add the music character
         # self._svg_list.append(SW.path.Path(d=_getglyph(self.name, self.font)["d"],
-        # id_=self.id, fill=self.color, fill_opacity=self.opacity,
+        # id=self.id, fill=self.color, fill_opacity=self.opacity,
         
         # transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
         # self.x, self.y, self.xscale * _toplevel_scaler(), self.yscale * _toplevel_scaler())
@@ -607,27 +658,29 @@ class MChar(_Observable, _Font):
         # ))
         # # Add the origin
         # if self.origin_visible:
-            # for elem in _origelems(self):
+            # for elem in origin_elems(self):
                 # self._svg_list.append(elem)
     
-    def _pack_svg_list_ip(self):
+    def pack_svg_list(self):
+        char = _SMTPath(
+            id_class=self.__class__,
+            d=self._path().d(),
+            fill=self.color,
+            fill_opacity=self.opacity)
+        bbox = _SMTPath(
+            d=SPT.bbox2path(*self._bbox()).d(),
+            fill=self.canvas_color,
+            fill_opacity=self.canvas_opacity,
+            is_bbox=True,
+            main_obj_id=char.id)
         if self.canvas_visible:
-            self._svg_list.append(SW.path.Path(
-                d=SPT.bbox2path(*self._bbox()).d(),
-                fill=self.canvas_color,
-                fill_opacity=self.canvas_opacity, 
-                id_=f"{self.id}-BBox")
-                )
+            self._svg_list.append(bbox)
         # Music character itself
-        self._svg_list.append(SW.path.Path(
-            d=self._path().d(), id_=self.id,
-            fill=self.color, fill_opacity=self.opacity,
-            # transform="translate({0} {1}) scale({2} {3})".format(
-                # self.x, self.y, self.xscale * _toplevel_scaler(), self.yscale * _toplevel_scaler())
-        ))
+        if self.visible:
+            self._svg_list.append(char)
         # Add the origin
         if self.origin_visible:
-            for elem in _origelems(self):
+            for elem in origin_elems(self, char.id):
                 self._svg_list.append(elem)
     
     # svgelements
@@ -669,8 +722,6 @@ class MChar(_Observable, _Font):
 
 class _Form(_Canvas, _Font):
 
-    id_counter = 0
-
     def __init__(self, font=None, content=None, **kwargs):
         self.content = content or []
         _Canvas.__init__(self, **kwargs)
@@ -685,7 +736,7 @@ class _Form(_Canvas, _Font):
         # Form on the page (they include it's y coordinate). They
         # should be considered read-only and are updated automatically
         # by the parent Form upon his replacement. Unlike this default
-        # height setup, a Form has no pre-existing width.
+        # height setup, a Form has no pre-existing width (i.e. = 0).
         self._abstract_staff_height_top = self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
         self._abstract_staff_height_bottom = self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
         self._abstract_staff_height = scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
@@ -805,7 +856,7 @@ class _Form(_Canvas, _Font):
     def _compute_height(self): 
         return self.height if self.height_locked else self.bottom - self.top
     
-    def _pack_svg_list_ip(self):
+    def pack_svg_list(self):
         # Bbox
         if self.canvas_visible: 
             # self._svg_list.append(_bboxelem(self))
@@ -814,35 +865,36 @@ class _Form(_Canvas, _Font):
                                 size=(self.width, self.height), 
                                 fill=self.canvas_color,
                                 fill_opacity=self.canvas_opacity, 
-                                id_=f"{self.id}-BBox")
+                                id=f"{self.id}-BBox")
             )
         # Add content
         for C in self.content:
             # C.xscale *= self.xscale
             # C.yscale *= self.yscale
             # Recursively pack svg elements of each child:
-            C._pack_svg_list_ip() 
+            C.pack_svg_list() 
             self._svg_list.extend(C._svg_list)
         # Origin
-        if self.origin_visible: self._svg_list.extend(_origelems(self))
+        if self.origin_visible:
+            self._svg_list.extend(origin_elems(self, self.id))
         
-    # def _pack_svg_list_ip(self):
+    # def pack_svg_list(self):
         # # Bbox
         # if self.canvas_visible:
             # self._svg_list.append(SW.path.Path(
                 # d=SPT.bbox2path(*self._bbox()).d(),
                 # fill=self.canvas_color,
                 # fill_opacity=self.canvas_opacity, 
-                # id_=f"{self.id}-BBox")
+                # id=f"{self.id}-BBox")
                 # )
         # # Add content
         # for C in self.content:
             # C.xscale *= self.xscale
             # C.yscale *= self.yscale
-            # C._pack_svg_list_ip() # Recursively gather svg elements
+            # C.pack_svg_list() # Recursively gather svg elements
             # self._svg_list.extend(C._svg_list)
         # # Origin
-        # # if self.origin_visible: self._svg_list.extend(_origelems(self))
+        # # if self.origin_visible: self._svg_list.extend(origin_elems(self))
         
     @property
     def left(self): return self._left
@@ -967,9 +1019,8 @@ class VForm(_Form):
             A._compute_verticals()
         
 # https://github.com/meerk40t/svgelements/issues/102
-class _LineSeg(_Observable):
+class _LineSeg(_View):
     """Angle in degrees"""
-    id_counter = 0
     def __init__(self, length=None, direction=None, thickness=None, angle=None, endxr=None, endyr=None,
     # start=None, end=None,
     **kwargs):
@@ -991,21 +1042,28 @@ class _LineSeg(_Observable):
 
 
     # Override canvas packsvglist
-    def _pack_svg_list_ip(self):
-        # bbox
-        self._svg_list.append(SW.path.Path(
-                d=SPT.bbox2path(*self._bbox()).d(),
-                fill=SW.utils.rgb(100,100,0,"%"),
-                fill_opacity=self.canvas_opacity, 
-                id_=f"{self.id}-BBox")
-                )
-        self._svg_list.append(SW.path.Path(
+    def pack_svg_list(self):
+        # the main thing
+        line = _SMTPath(
+            id_class=self.__class__,
             d=self._rect().d(),
             fill=self.color, fill_opacity=self.opacity
-        ))
+        )
+        # bbox
+        line_bbox = _SMTPath(
+            d=SPT.bbox2path(*self._bbox()).d(),
+            fill=SW.utils.rgb(100,100,0,"%"),
+            fill_opacity=self.canvas_opacity,
+            is_bbox=True,
+            main_obj_id=line.id
+        )
+        if self.canvas_visible: # why not called bbox_visible then??!!
+            self._svg_list.append(line_bbox)
+        if self.visible:
+            self._svg_list.append(line)
         # Add the origin
         if self.origin_visible:
-            for elem in _origelems(self):
+            for elem in origin_elems(self, line.id):
                 self._svg_list.append(elem)
         
         
@@ -1035,7 +1093,7 @@ class _LineSeg(_Observable):
     @property
     def thickness(self): return self._thickness
     # xmin, xmax, ymin, ymax
-    def _bbox(self): 
+    def _bbox(self):
         return SPT.Path(self._rect().d()).bbox()
 
 
@@ -1102,13 +1160,19 @@ class VLineSeg(_LineSeg):
             # a._compute_verticals()
 
 class HLineSeg(_LineSeg):
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        
     def _rect(self):
         rect = SE.Rect(
-            self.x, self.y - self.thickness*.5,
-            self.length, self.thickness,
-            self.endxr, self.endyr
+            self.x,
+            self.y - self.thickness*.5,
+            # self.y,
+            self.length,
+            self.thickness,
+            self.endxr,
+            self.endyr
             )
         rect *= f"scale({self.direction} 1)"
         rect *= f"skew({self.skewx}, {self.skewy}, {self.x}, {self.y})"

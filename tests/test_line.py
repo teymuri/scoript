@@ -7,9 +7,10 @@ if SMT_DIR not in sys.path:
     sys.path.append(SMT_DIR)
 
 import action_utils
+import random
 from inspect import currentframe
-from engine import Char
+from engine import HLineSeg
 
-def test_char_notehead(asset):
-    rest = Char("rests.1")
-    action_utils.genass_or_cmp([rest], currentframe().f_code.co_name, __file__, asset)
+def test_line(asset):
+    line = HLineSeg(length=10, thickness=4, x=0, y=0)
+    action_utils.genass_or_cmp([line], currentframe().f_code.co_name, __file__, asset)

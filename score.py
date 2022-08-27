@@ -6,7 +6,7 @@ Conveniece for creating score objects
 
 
 import engine as E
-
+from engine import VLineSeg, HLineSeg, DESIRED_STAFF_SPACE_IN_PXL, SForm
 
 
 
@@ -36,13 +36,48 @@ class _Pitch:
 
 
 class Staff(E.VForm):
-    def __init__(self, count=5, dist=3, **kwargs):
-        c = []
-        for i in range(count):
-            c.append(E.SForm(content=[E.HLineSeg(length=20, thickness=1)], height=1))
-        super().__init__(content=c, **kwargs)
+    THICKNESS = 1
+    
+    # def __init__(self, count=5, dist=3, **kwargs):
+    #     c = []
+    #     for i in range(count):
+    #         c.append(E.SForm(content=[E.HLineSeg(length=20,
+    #                                              thickness=Staff.THICKNESS)], height=1))
+    #     super().__init__(content=c, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    @staticmethod               # static because it's going to be used in rules
+    def make(obj):
+        for i in range(5):
+            y = i * DESIRED_STAFF_SPACE_IN_PXL + obj._abstract_staff_height_top
+            line = HLineSeg(length=obj.width,
+                            thickness=Staff.THICKNESS,
+                            y=y,
+                            x=obj.left,
+                            # opacity=0.5,
+                            canvas_visible=True,
+                            canvas_opacity=0.1,
+                            visible=True)
+            obj.append(line)
 
+class Barline(SForm):
+    # Gould, page 38: The barline is thicker than a stave-line ...
+    THICKNESS = Staff.THICKNESS + 1
+    def __init__(self, type="single", **kwargs):
+        # Types by Gould: single, double, final, repeat
+        self.type = type
+        self._char = None
+        super().__init__(**kwargs)
 
+    @property
+    def char(self):
+        return self._char
+    @char.setter
+    def char(self, new):
+        self._char = new
+        self.append(self._char)
+        
 class Stem(E.VLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -51,7 +86,7 @@ class OpenBeam(E.HLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class Note(E.SForm, Clock, _Pitch):
+class Note(SForm, Clock, _Pitch):
     def __init__(self, head_punch=None, stem_graver=None, obeam_graver=None, cbeam_graver=None,
     duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
@@ -106,46 +141,46 @@ class Accidental(E.SForm, _Pitch):
     def punch(self): return self._punch
     @punch.setter
     def punch(self, new):
-        self.delcont(lambda c: isinstance(c, E.MChar))
+        self.delcont(lambda c: isinstance(c, E.Char))
         self._punch = new
         self.append(self._punch)
 
 
-class Clef(E.SForm, _Pitch):
+class Clef(SForm, _Pitch):
     def __init__(self, pitch=None, **kwargs):
-        E.SForm.__init__(self, **kwargs)
+        SForm.__init__(self, **kwargs)
         _Pitch.__init__(self, pitch)
-        self._punch = None
+        self._char = None
 
     @property
-    def punch(self): return self._punch
-    @punch.setter
-    def punch(self, new):
+    def char(self): return self._char
+    @char.setter
+    def char(self, new):
         self.delcont(lambda c: isinstance(c, e.Char))
-        self._punch = new
-        self.append(self._punch)
+        self._char = new
+        self.append(self._char)
 
 class SimpleTimeSig(E.VForm):
     def __init__(self, num=4, denom=4, **kwargs):
         self.num=num
         self.denom=denom
-        self._num_punch=None
-        self._denom_punch=None
+        self._num_char=None
+        self._denom_char=None
         super().__init__(**kwargs)
 
     @property
-    def num_punch(self): return self._num_punch
-    @num_punch.setter
-    def num_punch(self, new):
-        self._num_punch = new
-        self.append(self._num_punch)
+    def num_char(self): return self._num_char
+    @num_char.setter
+    def num_char(self, new):
+        self._num_char = new
+        self.append(self._num_char)
     
     @property
-    def denom_punch(self): return self._denom_punch
-    @denom_punch.setter
-    def denom_punch(self, new):
-        if self._denom_punch: # First time setting in a rule
-            self.delcont(lambda c: c.id == self._denom_punch.id)
-        self._denom_punch = new
-        self.append(self._denom_punch)
+    def denom_char(self): return self._denom_char
+    @denom_char.setter
+    def denom_char(self, new):
+        if self._denom_char: # First time setting in a rule
+            self.delcont(lambda c: c.id == self._denom_char.id)
+        self._denom_char = new
+        self.append(self._denom_char)
     
