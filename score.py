@@ -6,7 +6,7 @@ Conveniece for creating score objects
 
 
 import engine as E
-from engine import VLineSeg, HLineSeg, DESIRED_STAFF_SPACE_IN_PXL, SForm
+from engine import VLineSeg, HLineSeg, DESIRED_STAFF_SPACE_IN_PX, SForm, HForm, VForm, Char
 
 
 
@@ -35,24 +35,17 @@ class _Pitch:
 
 
 
-class Staff(E.VForm):
+class StaffLines(VForm):
     THICKNESS = 1
-    
-    # def __init__(self, count=5, dist=3, **kwargs):
-    #     c = []
-    #     for i in range(count):
-    #         c.append(E.SForm(content=[E.HLineSeg(length=20,
-    #                                              thickness=Staff.THICKNESS)], height=1))
-    #     super().__init__(content=c, **kwargs)
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     
     @staticmethod               # static because it's going to be used in rules
     def make(obj):
         for i in range(5):
-            y = i * DESIRED_STAFF_SPACE_IN_PXL + obj._abstract_staff_height_top
+            y = i * DESIRED_STAFF_SPACE_IN_PX + obj.current_ref_glyph_top()
             line = HLineSeg(length=obj.width,
-                            thickness=Staff.THICKNESS,
+                            thickness=StaffLines.THICKNESS,
                             y=y,
                             x=obj.left,
                             # opacity=0.5,
@@ -61,9 +54,13 @@ class Staff(E.VForm):
                             visible=True)
             obj.append(line)
 
+class Staff(HForm):
+    def __init__(self, **kwargs):
+        HForm.__init__(self, **kwargs)
+
 class Barline(SForm):
     # Gould, page 38: The barline is thicker than a stave-line ...
-    THICKNESS = Staff.THICKNESS + 1
+    THICKNESS = StaffLines.THICKNESS + 1
     def __init__(self, type="single", **kwargs):
         # Types by Gould: single, double, final, repeat
         self.type = type
@@ -77,7 +74,24 @@ class Barline(SForm):
     def char(self, new):
         self._char = new
         self.append(self._char)
-        
+
+class KeySig(HForm):
+    
+    def __init__(self, scale, **kwargs):
+        self.scale = scale
+        self._char_list = []
+        HForm.__init__(self, **kwargs)
+    
+    @property
+    def char_list(self):
+        return self._char_list
+    
+    @char_list.setter
+    def char_list(self, new_list):
+        self._char_list = new_list
+        self.append(*self._char_list)
+
+
 class Stem(E.VLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -129,21 +143,20 @@ class Note(SForm, Clock, _Pitch):
         self.append(self._cbeam_graver)
 
 
-class Accidental(E.SForm, _Pitch):
-    def __init__(self, punch=None, pitch=None, **kwargs):
-        E.SForm.__init__(self, **kwargs)
-        _Pitch.__init__(self, pitch)
-        self._punch = punch
-        if punch:
-            self.append(self._punch)
+class Accidental(SForm):
+    def __init__(self, pitch=None, **kwargs):
+        SForm.__init__(self, **kwargs)
+        self.pitch = pitch      # e.g. ("f", 5, "#")
+        self._char = None
         
     @property
-    def punch(self): return self._punch
-    @punch.setter
-    def punch(self, new):
-        self.delcont(lambda c: isinstance(c, E.Char))
-        self._punch = new
-        self.append(self._punch)
+    def char(self): return self._char
+    
+    @char.setter
+    def char(self, new):
+        self.delcont(lambda c: isinstance(c, Char))
+        self._char = new
+        self.append(self._char)
 
 
 class Clef(SForm, _Pitch):

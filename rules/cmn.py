@@ -8,8 +8,8 @@ if SMT_DIR not in sys.path:
 
 import random
 from engine import (RuleTable, render, HForm, mm_to_px, HLineSeg,
-                    DESIRED_STAFF_SPACE_IN_PXL, Char, CMN, VLineSeg)
-from score import (SimpleTimeSig, Clef, Note, Barline, Staff)
+                    DESIRED_STAFF_SPACE_IN_PX, Char, CMN, VLineSeg)
+from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff)
 
 
 """
@@ -17,12 +17,31 @@ This file contains rules for engraving Common Music Notation.
 """
 
 from random import randint, choice
-# from engine import DESIRED_STAFF_SPACE_IN_PXL, Char, HForm, CMN, VLineSeg
+# from engine import DESIRED_STAFF_SPACE_IN_PX, Char, HForm, CMN, VLineSeg
 import score as S
-# from score import Note, Clef, SimpleTimeSig, Staff, Barline
+# from score import Note, Clef, SimpleTimeSig, StaffLines, Barline
 import copy 
 
 ################ time signature
+def _treble_pitch_vertical_pos(pitch_obj):
+    """The pitch object is a note or an accidental. NOTE: all must
+    be forms, probabely sform is more suitable for single chars, since
+    we need the object's abstract staff info.
+    """
+    pitch_name: str = pitch_obj.pitch[0]
+    octave: int = pitch_obj.pitch[1]
+    pos_on_staff = pitch_obj._abstract_staff_height_bottom + {
+        "c": 1 * DESIRED_STAFF_SPACE_IN_PX,
+        "d": 0.5 * DESIRED_STAFF_SPACE_IN_PX,
+        "e": 0 * DESIRED_STAFF_SPACE_IN_PX,
+        "f": -0.5 * DESIRED_STAFF_SPACE_IN_PX,
+        "g": -1 * DESIRED_STAFF_SPACE_IN_PX,
+        "a": -1.5 * DESIRED_STAFF_SPACE_IN_PX,
+        "b": -2 * DESIRED_STAFF_SPACE_IN_PX
+    }[pitch_name]
+    offset_by_oct = (4 - octave) * (7/8 * pitch_obj._abstract_staff_height)
+    y = pos_on_staff + offset_by_oct
+    return y
 
 def is_simple_timesig(x): return isinstance(x, S.SimpleTimeSig)
 def set_simple_timesig_chars(ts):
@@ -39,15 +58,48 @@ def set_simple_timesig_chars(ts):
         d=ts.denom_char.parent().width - ts.denom_char.width
         ts.denom_char.right = ts.denom_char.parent().right
         
+def is_keysig(obj): return isinstance(obj, KeySig)
+def set_keysig_char_list(keysig):
+    char_list = []
+    if keysig.scale in ("amaj", "f#min"): # f# c# g# problem war dass
+        f_sharp = Accidental(pitch=("f", 5, "#"), )
+        c_sharp = Accidental(pitch=("c", 5, "#"), )
+        g_sharp = Accidental(pitch=("g", 5, "#"), )
+        char_list.extend([f_sharp, c_sharp, g_sharp])
+    keysig.char_list = char_list
 
 
+    
+def is_accidental(obj):
+    return isinstance(obj, Accidental)
+        # and not isinstance(obj.parent(), KeySig)
 
-
+def set_accidental_char(acc_obj):
+    acc = {"#": "accidentals.sharp"}[acc_obj.pitch[2]]
+    char = Char(name=acc)
+    p = acc_obj.pitch[0]
+    okt = acc_obj.pitch[1]
+    # content of octave 4
+    # breakpoint()
+    # acc_obj.y = acc_obj.parent().y
+    # _abstract_staff_height_bottom
+    pos_on_staff = acc_obj.current_ref_glyph_bottom() + {
+            "c": 1 * DESIRED_STAFF_SPACE_IN_PX,
+            "d": 0.5 * DESIRED_STAFF_SPACE_IN_PX,
+            "e": 0 * DESIRED_STAFF_SPACE_IN_PX,
+            "f": -0.5 * DESIRED_STAFF_SPACE_IN_PX,
+            "g": -1 * DESIRED_STAFF_SPACE_IN_PX,
+            "a": -1.5 * DESIRED_STAFF_SPACE_IN_PX,
+            "b": -2 * DESIRED_STAFF_SPACE_IN_PX
+        }[p]
+    offset_by_oct = (4 - okt) * 7/8 * acc_obj._abstract_staff_height
+    acc_obj.char = char
+    acc_obj.char.y = pos_on_staff + offset_by_oct
 
 
 
 # Setting noteheads
-def make_notehead(note):
+def set_notehead_char(note):
     # setter for head? to append automatically
     if isinstance(note.duration, str):
         note.head_punch = S.E.Char(name={
@@ -87,7 +139,7 @@ def notehead_vertical_pos(note_obj):
     i.e. the middle stave line) to be the bottom edge of the SForm
     (_abstract_staff_height_bottom) + 1 stave space to get C4, half
     stave space to get D4, 0 stave spaces to get the E4, half stave
-    space towards top of page to get F4 (-0.5 * DESIRED_STAFF_SPACE_IN_PXL, topwards
+    space towards top of page to get F4 (-0.5 * DESIRED_STAFF_SPACE_IN_PX, topwards
     our y coordinate is moving negative, downwards positive) etc. The
     rest is to replace the result of aforementioned calculations by a
     certian amount (offset_by_oct below) to transpose to other
@@ -98,14 +150,15 @@ def notehead_vertical_pos(note_obj):
         p = note_obj.pitch[0]
         okt = note_obj.pitch[1]
         # content of octave 4
-        pos_on_staff = note_obj._abstract_staff_height_bottom + {
-            "c": 1 * S.E.DESIRED_STAFF_SPACE_IN_PXL,
-            "d": 0.5 * S.E.DESIRED_STAFF_SPACE_IN_PXL,
-            "e": 0 * S.E.DESIRED_STAFF_SPACE_IN_PXL,
-            "f": -0.5 * DESIRED_STAFF_SPACE_IN_PXL,
-            "g": -1 * DESIRED_STAFF_SPACE_IN_PXL,
-            "a": -1.5 * DESIRED_STAFF_SPACE_IN_PXL,
-            "b": -2 * DESIRED_STAFF_SPACE_IN_PXL
+        # _abstract_staff_height_bottom
+        pos_on_staff = note_obj.current_ref_glyph_bottom() + {
+            "c": 1 * DESIRED_STAFF_SPACE_IN_PX,
+            "d": 0.5 * DESIRED_STAFF_SPACE_IN_PX,
+            "e": 0 * DESIRED_STAFF_SPACE_IN_PX,
+            "f": -0.5 * DESIRED_STAFF_SPACE_IN_PX,
+            "g": -1 * DESIRED_STAFF_SPACE_IN_PX,
+            "a": -1.5 * DESIRED_STAFF_SPACE_IN_PX,
+            "b": -2 * DESIRED_STAFF_SPACE_IN_PX
         }[p]
         offset_by_oct = (4 - okt) * 7/8 * note_obj._abstract_staff_height
         note_obj.head_punch.y = pos_on_staff + offset_by_oct
@@ -120,7 +173,8 @@ def make_accidental_char(accobj):
 def set_clef_char(clefobj):
     if clefobj.pitch == "g":
         clefobj.char = Char(name="clefs.G",
-                              y=clefobj._abstract_staff_height_bottom - DESIRED_STAFF_SPACE_IN_PXL)
+                            # _abstract_staff_height_bottom
+                            y=clefobj.current_ref_glyph_bottom() - DESIRED_STAFF_SPACE_IN_PX)
     # clefobj.punch = Char(name={"g": "clefs.G", 1:"clefs.C",
     #                                 "F":"clefs.F", "f":"clefs.F_change","c":"clefs.C"}[clefobj.pitch],
     #                           rotate=0, canvas_visible=False,
@@ -168,9 +222,11 @@ def right_guard(obj):
             S.SimpleTimeSig: 0}[type(obj)]
 
 RIGHT_MARGIN = {
-    Clef: DESIRED_STAFF_SPACE_IN_PXL,
-    Barline: DESIRED_STAFF_SPACE_IN_PXL,
-    SimpleTimeSig: DESIRED_STAFF_SPACE_IN_PXL
+    KeySig: DESIRED_STAFF_SPACE_IN_PX,
+    Accidental: DESIRED_STAFF_SPACE_IN_PX,
+    Clef: DESIRED_STAFF_SPACE_IN_PX,
+    Barline: DESIRED_STAFF_SPACE_IN_PX,
+    SimpleTimeSig: DESIRED_STAFF_SPACE_IN_PX
 }
 
 def first_clock_idx(l):
@@ -188,10 +244,10 @@ def _find_ref_dur(durs_to_count: dict[str, int]) -> str:
     return max(durs_to_count, key=durs_to_count.get)
 
     
-def do_horizontal_spacing(hform):
+def do_horizontal_spacing(staff):
     # breakpoint()
     # get sum of all non-valued character's width of the staff
-    non_valued_objs = [x for x in hform.content if not isinstance(x, Note)]
+    non_valued_objs = [x for x in staff.content if not isinstance(x, Note)]
     # non_valued_objs_space = sum([x.width + RIGHT_MARGIN[type(x)] for x in non_valued_objs])
     non_valued_objs_space = 0
     for x in non_valued_objs:
@@ -199,22 +255,22 @@ def do_horizontal_spacing(hform):
         if not (isinstance(x, Barline) and x.is_last_child()):
             non_valued_objs_space += RIGHT_MARGIN[type(x)]
     # get the remaining space for valued objs
-    remain_space = hform.width - non_valued_objs_space
+    remain_space = staff.width - non_valued_objs_space
     # compute ideal widths for notes ()
-    valued_objs = [x for x in hform.content if isinstance(x, Note)]
+    valued_objs = [x for x in staff.content if isinstance(x, Note)]
     durs_to_count = durs_to_count_dict(valued_objs)
     ref_dur: str = _find_ref_dur(durs_to_count)
     ref_dur_count = sum([v * _dur_ref_ratio(k, ref_dur) for k, v in durs_to_count.items()])
     # ideal width for the reference duration
     ref_dur_width = remain_space / ref_dur_count
     valued_objs_space: list = [(ref_dur_width * _dur_ref_ratio(obj.duration, ref_dur) - obj.width) for obj in valued_objs]
-    if all([isinstance(x, Note) for x in hform.content]):
-        for obj, width in zip(hform.content, valued_objs_space):
+    if all([isinstance(x, Note) for x in staff.content]):
+        for obj, width in zip(staff.content, valued_objs_space):
             obj.width += width
             obj._width_locked = True
     else:
         valued_obj_idx = 0
-        for obj in hform.content:
+        for obj in staff.content:
             if isinstance(obj, Note):
                 obj.width += valued_objs_space[valued_obj_idx]
                 valued_obj_idx += 1
@@ -254,11 +310,11 @@ def punctsys(h):
                     # dont need to lock this width, since it's not touched
                     # by setstem: setstem only impacts it's papa: the NOTE object
                     # a._width_locked = 1
-    # h._lineup()
+    # h.lineup()
 
 
 def noteandtreble(x): return isinstance(x, S.Note) and x.domain == "treble"
-def isacc(x): return isinstance(x, S.Accidental)
+
 
 
 def greenhead(x): x.head_punch.color = e.SW.utils.rgb(0,0,100,"%")
@@ -292,7 +348,7 @@ def addstaff(n):
     x=5
     h=n._abstract_staff_height / 4.0
     for i in range(x):
-        y = i * DESIRED_STAFF_SPACE_IN_PXL + n._abstract_staff_height_top
+        y = i * DESIRED_STAFF_SPACE_IN_PX + n._abstract_staff_height_top
         y_original_which_was_wrong = i*h + n.top
         # length = n.right - n.x
         l=S.E.HLineSeg(length=n.width, thickness=1, y=y,
@@ -312,14 +368,14 @@ def is_barline(x): return isinstance(x, Barline)
 def place_barline(barline):
     # note = barline.ancestors[0].content[-2]
     note = barline.direct_older_sibling()
-    barline.length = note._abstract_staff_height + Staff.THICKNESS
+    barline.length = note._abstract_staff_height + StaffLines.THICKNESS
     barline.x = note.right
-    barline.y = note._abstract_staff_height_top - Staff.THICKNESS * .5
+    barline.y = note._abstract_staff_height_top - StaffLines.THICKNESS * .5
 def set_barline_char(obj):
     # obj is a barline object
-    obj.char = VLineSeg(length=obj._abstract_staff_height + Staff.THICKNESS,
+    obj.char = VLineSeg(length=obj._abstract_staff_height + StaffLines.THICKNESS,
                         thickness=Barline.THICKNESS,
-                        y=obj._abstract_staff_height_top - Staff.THICKNESS * .5,
+                        y=obj.current_ref_glyph_top() - StaffLines.THICKNESS * .5,
                         # a barline is normally used after a note or a rest
                         x=obj.direct_older_sibling().right,
                         canvas_visible=True,
@@ -354,72 +410,112 @@ test
 """
 # The single argument to rule hooks are every objects defined in your
 # score.
-S.E.CMN.unsafeadd(set_simple_timesig_chars,
-                  is_simple_timesig,"Set Time...",)
-S.E.CMN.unsafeadd(make_notehead, noteandtreble, "make noteheads",)
-S.E.CMN.unsafeadd(notehead_vertical_pos, noteandtreble, "note vertical position")
-S.E.CMN.unsafeadd(make_accidental_char, isacc, "Making Accidental Characters",)
-# e.CMN.unsafeadd(greenhead, noteandtreble)
+CMN.unsafeadd(set_simple_timesig_chars,
+              is_simple_timesig,"Set Time...",)
+
+CMN.unsafeadd(set_notehead_char, noteandtreble, "make noteheads",)
+CMN.unsafeadd(notehead_vertical_pos, noteandtreble, "note vertical position")
+
+CMN.unsafeadd(set_keysig_char_list, is_keysig, "keysig")
+
+CMN.unsafeadd(set_accidental_char, is_accidental,
+              "making accidental chars ...",)
+
 
 S.E.CMN.unsafeadd(setstem, isnote, "Set stems",)
 
-S.E.CMN.unsafeadd(set_clef_char, isclef, "Make clefs",)
+S.E.CMN.unsafeadd(set_clef_char, isclef, "Make clefs")
+
+CMN.unsafeadd(set_barline_char, lambda obj: is_barline(obj), "placing barlines")
 
 # S.E.CMN.unsafeadd(punctsys,
 #                   # isline,
 #                   lambda x: isinstance(x, HForm),
 #                   "Punctuate",)
-CMN.unsafeadd(set_barline_char, lambda obj: is_barline(obj), "placing barlines")
 
 CMN.unsafeadd(do_horizontal_spacing,
-              lambda x: isinstance(x, HForm),
+              lambda x: isinstance(x, Staff),
               "do_horizontal_spacing,")
 
-CMN.unsafeadd(Staff.make,
+CMN.unsafeadd(StaffLines.make,
               lambda obj: isnote(obj) or \
               isclef(obj) or \
               is_simple_timesig(obj) or \
-              # False,
+              is_accidental(obj) or \
+              is_keysig(obj) or \
               is_barline(obj) and not obj.is_last_child(),
               "Draws stave ontop/behind(?)")
 
 if __name__ == "__main__":
-    h = HForm(content=[
+    a = Accidental(pitch=("f", 5, "#"))
+    accs = [
+        Accidental(pitch=("f", 5, "#")),
+        Accidental(pitch=("e", 5, "#")),
+        Accidental(pitch=("d", 5, "#")),
+        Accidental(pitch=("c", 5, "#")),
+        Accidental(pitch=("b", 4, "#")),
+        Accidental(pitch=("a", 4, "#")),
+        Accidental(pitch=("g", 4, "#")),
+        Accidental(pitch=("f", 4, "#")),
+        Accidental(pitch=("g", 4, "#")),
+        Accidental(pitch=("a", 4, "#")),
+        Accidental(pitch=("b", 4, "#")),
+        Accidental(pitch=("c", 5, "#")),
+        Accidental(pitch=("d", 5, "#")),
+        Accidental(pitch=("e", 5, "#")),
+    ]
+    # accs += list(reversed(accs))
+    # breakpoint()
+    
+    h = Staff(content=[
         Clef(pitch="g", canvas_visible=False, origin_visible=False),
+        KeySig("amaj"),
+        KeySig("", content=accs),
         SimpleTimeSig(denom=4, canvas_visible=False, origin_visible=False),
+        a,
         Note(domain="treble",
              duration="q",
              pitch=["f", 5]),
+        # Accidental(pitch=("f", 5, "#")),
         Note(domain="treble",
              duration="q",
              pitch=["f", 5]),
+        # Accidental(pitch=("f", 5, "#")),
         Note(domain="treble",
              duration="q",
              pitch=["f", 5]),
+        # Accidental(pitch=("g", 5, "#")),
         Note(domain="treble",
              duration="q",
              pitch=["g", 5]),
         Barline(),
+        # Accidental(pitch=("a", 5, "#")),
         Note(domain="treble",
              duration="h",
              pitch=["a", 5]),
+        # Accidental(pitch=("g", 5, "#")),
         Note(domain="treble",
              duration="h",
              pitch=["g", 5]),
         Barline(),
+        # Accidental(pitch=("f", 5, "#")),
         Note(domain="treble",
              duration="q",
              pitch=["f", 5]),
+        # Accidental(pitch=("a", 5, "#")),
         Note(domain="treble",
              duration="q",
              pitch=["a", 5]),
+        # Accidental(pitch=("g", 5, "#")),
         Note(domain="treble",
              duration="q",
              pitch=["g", 5]),
+        # Accidental(pitch=("g", 5, "#")),
         Note(domain="treble",
              duration="q",
              pitch=["g", 5]),
         Barline(),
+        # Accidental(pitch=("c", 5, "#")),
         Note(domain="treble",
              duration="w",
              pitch=["f", 5]),
@@ -430,5 +526,8 @@ if __name__ == "__main__":
               y=60,
               canvas_visible=True,
               origin_visible=True)
-    print(h.width)
+
+    # s = Staff(content=[KeySig("", content=[Accidental(pitch=("e", 5, "#"))])],
+    #           x=1,y=2)
+    # breakpoint()
     render(h, path="/tmp/test.svg")

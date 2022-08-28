@@ -16,8 +16,8 @@ are by default (if not correct them) in pixels only.
 
 ## Coordinate Movement of Objects
 When you move an object's y coordinate
-- upwards is decrementing (-)
-- downwards is incrementing (+)
+- incrementing (+) is downwards
+- decrementing (-) is upwards
 
 When moving an object's x coordinate
 - to the right is ?

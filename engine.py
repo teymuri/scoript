@@ -108,7 +108,7 @@ CHLAPIK_STAFF_SPACES_IN_MM = {
 }
 
 DESIRED_STAFF_HEIGHT_IN_PXL = mm_to_px(GOULD_STAFF_HEIGHTS_IN_MM[0])
-DESIRED_STAFF_SPACE_IN_PXL = mm_to_px(GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
+DESIRED_STAFF_SPACE_IN_PX = mm_to_px(GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
 
 # This factor should be used to scale all objects globally
 GLOBAL_SCALE_FACTOR = 1.0
@@ -132,33 +132,42 @@ _TOP_MARGIN = mm_to_px(56)
 
 
 
-# ~ Why am I not writing this as a method to FORM?
-def _descendants(obj, N, D):
+
+def _index_generation_mapping(obj, gen_idx: int, gen_dict: dict) -> dict[int, list]:
+    """Returns a mapping of generation indices to generation family_tree
+    of object. Index is added to the output of this helper function to
+    make the descendants function capable of sorting based on
+    generation indices."""
     if isinstance(obj, _Form) and obj.content:
-        if N not in D:
+        if gen_idx not in gen_dict:
             # ~ Shallow copy only the outer content List,
-            D[N] = cp.copy(obj.content)
+            gen_dict[gen_idx] = cp.copy(obj.content)
         else:
-            D[N].extend(obj.content)
-        for C in obj.content:
-            _descendants(C, N+1, D)
-    return D
+            gen_dict[gen_idx].extend(obj.content)
+        for child in obj.content:
+            _index_generation_mapping(child, gen_idx+1, gen_dict)
+    return gen_dict
     
-def descendants(obj, lastgen_first=True):
-    D = []
-    for _, gen in sorted(_descendants(obj, 0, {}).items(), reverse=lastgen_first):
-        D.extend(gen)
-    return D
+def descendants(obj, young_gen_first=True) -> list:
+    """Returns a full list of all children and grand children and
+    grand grand children and so on of the object (hence the naming
+    descendants and not e.g. children). By default the youngest of
+    generations appear first in the list, then their parents, then
+    their grand parents and so forth.
 
-
-def members(obj):
-    """Returns a list containing the object itself and all it's children.
     """
-    return [obj] + descendants(obj, lastgen_first=False)
+    desc_list = []
+    for _, gen_list in sorted(_index_generation_mapping(obj, 0, {}).items(),
+                              reverse=young_gen_first):
+        desc_list.extend(gen_list)
+    return desc_list
 
-def getallin(typeof, obj):
-    """Returns an iterable of all types in obj."""
-    return filter(lambda O: isinstance(O, typeof), members(obj))
+def family_tree(obj) -> list:
+    """Returns a list containing the object and it's descendants
+    ordered from old to young.
+
+    """
+    return [obj] + descendants(obj, young_gen_first=False)
 
 
 ############# deprecated, remove
@@ -166,10 +175,12 @@ _ruletables = set()             # put this as class var in RuleTable?
 
 def _pending_rule_tables():
     """True if there some ruletables with pending rules."""
-    return [rt for rt in _ruletables if rt.is_pending()]
+    return [rt for rt in _ruletables if rt.pending_rules()]
 ###############
 class RuleTable:
+    
     RULE_TABLES = set()
+    
     def __init__(self, name=None):
         self.name = name
         self.rules = dict()
@@ -181,17 +192,22 @@ class RuleTable:
         self._pred_registry = []
         # _ruletables.add(self)
         RuleTable.RULE_TABLES.add(self)
-    # def __repr__(self): return f"RuleTable {self.id}"
-    def is_pending(self):       # this name is bullshit (not a bool)!!!
-        """Returns a list of rules of this ruletable of the form:
-        (order, rule dictionary)
-        which are pending (waiting) for application. If nothing is pending 
-        [] is returned."""
-        # o=order, rd=rule dict
-        return [(o, rd) for (o, rd) in self.rules.items() if not rd["applied"]]
+
+    def make_rule(self, desc: str, hook, pred) -> dict:
+        return {"desc": desc, "hook": hook, "pred": pred, "applied": False}
+    
+    def pending_rules(self) -> list:       # this name is bullshit (not a bool)!!!
+        """Returns a sorted list of only rules of this ruletable
+        instance of the form (order: int, rule: dict obtained from
+        self.make_rule) which are pending (waiting) for application.
+
+        """
+        return [(order, rule) for (order, rule) in sorted(self.rules.items()) if not rule["applied"]]
+    
     @classmethod
-    def pending_rule_tables(cls):
-        return [rt for rt in RuleTable.RULE_TABLES if rt.is_pending()]
+    def pending_rule_tables(cls) -> list[dict[int, dict]]:
+        """Returns any rule tables if there is any unapplied rules in it."""
+        return [rule_table for rule_table in RuleTable.RULE_TABLES if rule_table.pending_rules()]
     
     def add(self, hook, pred, desc=None, aux=False):
         """
@@ -205,17 +221,15 @@ class RuleTable:
             self._hook_registry.append(hhash)
             self._pred_registry.append(phash)
         
-    def unsafeadd(self, hook, pred, desc=""):
-        self.rules[self._order] = {"desc": desc,
-                                   "hook": hook,
-                                   "pred": pred,
-                                   "applied": False}
+    def unsafeadd(self, hook, pred, desc=""): # rename register
+        self.rules[self._order] = self.make_rule(desc, hook, pred)
         # next rule will be added at the next position, this order
         # decides when the rule should be applied.
         self._order +=1
 
     @classmethod
     def reset(cls):
+        """Marks all rules as unapplied, so they will be applicable."""
         for rule_table in cls.RULE_TABLES:
             for rule in rule_table.rules.values():
                 rule["applied"] = False
@@ -312,7 +326,7 @@ class _SMTObject(_Identifiable):
         children."""
         return self.index() == len(self.siblings()) - 1
     
-    def _apply_rules(self):
+    def apply_rules(self):
         """
         Applies rules to this smt object and all it's descendants.
         A rule will look for application target objects exactly once per each 
@@ -321,6 +335,9 @@ class _SMTObject(_Identifiable):
         """
         depth = -1
         print("APPLYING RULES:")
+        # mark all rules as unapplied, this is necessary because
+        # apply_rules could be called multiple times by render for
+        # each of it's argument.
         RuleTable.reset()
         while True:
             # pending_rule_tables = _pending_rule_tables()
@@ -329,24 +346,26 @@ class _SMTObject(_Identifiable):
                 # Gehe eine Stufe tiefer rein, nach jedes Mal alle pendings 
                 # bearbeitet zu haben.
                 depth += 1
+                # NOTE: rule tables are not sorted! maybe can add also
+                # an order to them (like with rules) to let them be
+                # sortable?!!!
                 for rt in pending_rule_tables:
                     # o_rd=(order, ruledictionary), sort pending rules based on their order.
-                    for order, rule in sorted(rt.is_pending(), key=lambda o_rd: o_rd[0]):
+                    for order, rule in rt.pending_rules(): # sorted(rt.pending_rules(), key=lambda o_rd: o_rd[0]):
                         if rt.log:
                             print(f"RT: {rt.name}, DEPTH: {depth}, ORDER: {order}, DESC: '{rule['desc']}'", end=" ")
-                        # get in each round the up-to-date list of members (possibly new objects have been added etc....)
+                        # get in each round the up-to-date list of family_tree (possibly new objects have been added etc....)
                         applied_to_something = False
                         # if rt.log: print(", APPLIED:", end=" ")
-                        for m in members(self):
+                        for m in family_tree(self):
                             # Call the predicate function to decide
                             # whether to apply the rule or not.
                             if rule["pred"](m):
                                 rule["hook"](m)
                                 applied_to_something = True
                                 if rt.log: print("✓", end="")
-                                if isinstance(m, HForm): m._lineup() # Das untenstehende scheint sinvoller??!
-                                # for a in reversed(m.ancestors):
-                                    # if isinstance(a, HForm): a._lineup()
+                                if isinstance(m, (HForm, VForm)):
+                                    m.lineup()
                         if not applied_to_something and rt.log:
                             print("✘")
                         elif applied_to_something and rt.log:
@@ -354,7 +373,10 @@ class _SMTObject(_Identifiable):
                         # A rule should not be applied more than once,
                         # so tag it as being applied.
                         rule["applied"] = True
-                # pending_rule_tables = RuleTable.pending_rule_tables()
+                # this is a bit of an overkill, but was added to allow
+                # modifications to the ruletables on the fly
+                # (e.g. rules adding new rules) to take effect.
+                pending_rule_tables = RuleTable.pending_rule_tables()
             else:
                 break
 
@@ -378,7 +400,7 @@ def render(*items, path="/tmp/smt"):
     """
     drawing = SW.drawing.Drawing(filename=path, size=(PAGEW, PAGEH), debug=True)
     for item in items:
-        item._apply_rules()
+        item.apply_rules()
         # Form's packsvglst will call packsvglst on descendants recursively
         item.pack_svg_list()
         for elem in item._svg_list:
@@ -432,51 +454,11 @@ class _Canvas(_SMTObject):
     @property
     def xscale(self): return self._xscale
     @property
-    def yscale(self): return self._yscale
-    
-    # def unlock(what):
-        # if what == "y":
-            # self.y_locked = False
-    
+    def yscale(self): return self._yscale    
     @property
     def x(self): return self._x
     @property
     def y(self): return self._y
-    
-    # # Placeholders
-    # @property
-    # def top(self): raise NotImplementedError
-    # @property
-    # def bottom(self): raise NotImplementedError
-    # @property
-    # def height(self): raise NotImplementedError
-    # @property
-    # def width(self): raise NotImplementedError
-    # @property
-    # def left(self): raise NotImplementedError
-    # @property
-    # def right(self): raise NotImplementedError
-
-    # # X Setters; as these set the x, they have any effect only when x is unlocked.
-    # @left.setter
-    # def left(self, new): self.x += (new - self.left)
-    # @right.setter
-    # def right(self, new): self.x += (new - self.right)
-
-    # # Make sure from canvas derived subclasses have implemented these computations.
-    # def _compute_width(self):
-        # raise NotImplementedError(f"_compute_width not overriden by {self.__class__.__name__}")
-    # def _compute_height(self):
-        # raise NotImplementedError(f"_compute_height not overriden by {self.__class__.__name__}")
-    
-
-    
-# def _bboxelem(obj): 
-    # return SW.shapes.Rect(insert=(obj.left, obj.top),
-                                # size=(obj.width, obj.height), 
-                                # fill=obj.canvas_color,
-                                # fill_opacity=obj.canvas_opacity, 
-                                # id=obj.id + "BBox")
 
 _ORIGIN_CROSS_LEN = 20
 _ORIGIN_CIRCLE_R = 4
@@ -508,11 +490,10 @@ class _Font:
 
 class _View(_Canvas):
     """A view is a something which is drawn on a canvas and which can
-    be observed on its own, e.g. a character, a line etc. This is in
-    contrast to a form which is a container for other objects and can
-    not be observed on it's own (you can see it's canvas, but not the
-    form itself!).
-
+    be observed on its own. This is in contrast to a form which is a
+    container for other objects and can not be observed on it's own
+    (you can see it's canvas, but not the form itself!).
+    Examples for views are characters and lines.
     """
     def __init__(self, color=None, opacity=None, visible=True, **kwargs):
         super().__init__(**kwargs)
@@ -524,25 +505,29 @@ class _View(_Canvas):
     def x(self, new):
         if not self.x_locked:
             self._x = new
-            for a in reversed(self.ancestors):
-                a._compute_horizontals()
+            for anc in reversed(self.ancestors):
+                anc.refresh_horizontals()
     
     @_Canvas.y.setter
     def y(self, new):
         if not self.y_locked:
             self._y = new
-            for a in reversed(self.ancestors):
-                a._compute_verticals()
+            for anc in reversed(self.ancestors):
+                anc.refresh_verticals()
     
     def _bbox(self): self._notimplemented("_bbox")
-        # raise NotImplementedError(f"_bbox method not overriden by {self.__class__.__name__}!")  
     
     @property
-    def left(self): return self._bbox()[0]
+    def left(self):
+        return self._bbox()[0]
+    
     @property
     def right(self): return self._bbox()[1]
+    
     @property
-    def top(self): return self._bbox()[2]
+    def top(self):
+        return self._bbox()[2]
+
     @property
     def bottom(self): return self._bbox()[3]
     @property
@@ -566,100 +551,20 @@ class Char(_View, _Font):
         _View.__init__(self, **kwargs)
         _Font.__init__(self, font)
         self.name = name
-        # self.glyph = _getglyph(self.name, self.font)
         self._glyph = get_glyph(self.name, self.font)
-        # self._se_path = SE.Path(self.glyph, transform)
-        # self.bbox = SPT.Path(self.glyph).bbox()
-        # self._path = SPT.Path(_get_glyph_d(self.name, self.font))
         self.canvas_color = SW.utils.rgb(100, 0, 0, "%")
-        # self._compute_horizontals()
-        # self._compute_verticals()
     
     @_Canvas.xscale.setter
     def xscale(self, new):
         self._xscale = new
         for a in reversed(self.ancestors):
-            a._compute_horizontals()
+            a.refresh_horizontals()
     
     @_Canvas.yscale.setter
     def yscale(self, new):
         self._yscale = new
         for a in reversed(self.ancestors):
-            a._compute_verticals()
-        
-    
-    # @_Canvas.x.setter
-    # def x(self, new):
-        # if not self.x_locked:
-            # self._x = new
-            # for a in reversed(self.ancestors):
-                # a._compute_horizontals()
-    # @_Canvas.y.setter
-    # def y(self, new):
-        # if not self.y_locked:
-            # self._y = new
-            # for a in reversed(self.ancestors):
-                # a._compute_verticals()
-    
-    # @_Canvas.x.setter
-    # def x(self, new):
-        # if not self.x_locked:
-            # dx = new - self.x # save x before re-assignment!
-            # self._x = new
-            # self._left += dx
-            # self._right += dx
-            # for A in reversed(self.ancestors): # An ancestor is always a Form!!
-                # A._compute_horizontals()
-    
-    # @_Canvas.y.setter
-    # def y(self, newy):
-        # if not self.y_locked:
-            # dy = newy - self.y
-            # self._y = newy
-            # self._top += dy
-            # self._bottom += dy
-            # for A in reversed(self.ancestors): # A are Forms
-                # A._compute_verticals()
-            
-    # @_Canvas.width.setter
-    # def width(self, neww):
-        # raise Exception("Char's width is immutable!")
-
-    # def _compute_left(self):
-        # return self.x + scale_by_staff_height_factor(self.glyph["left"])
-
-    # def _compute_right(self):
-        # return self.x + scale_by_staff_height_factor(self.glyph["right"])
-
-    # def _compute_width(self):
-        # return scale_by_staff_height_factor(self.glyph["width"])
-    
-    # def _compute_top(self):
-        # return self.y + scale_by_staff_height_factor(self.glyph["top"])
-    
-    # def _compute_bottom(self):
-        # return self.y + scale_by_staff_height_factor(self.glyph["bottom"])
-    
-    # def _compute_height(self):
-        # return scale_by_staff_height_factor(self.glyph["height"])
-    
-    # def pack_svg_list(self):
-        # # Add bbox rect
-        # if self.canvas_visible:
-            # self._svg_list.append(_bboxelem(self))
-        # # Add the music character
-        # self._svg_list.append(SW.path.Path(d=_getglyph(self.name, self.font)["d"],
-        # id=self.id, fill=self.color, fill_opacity=self.opacity,
-        
-        # transform="translate({0} {1}) scale(1 -1) scale({2} {3})".format(
-        # self.x, self.y, self.xscale * _toplevel_scaler(), self.yscale * _toplevel_scaler())
-        
-        
-        # ))
-        # # Add the origin
-        # if self.origin_visible:
-            # for elem in origin_elems(self):
-                # self._svg_list.append(elem)
+            a.refresh_verticals()
     
     def pack_svg_list(self):
         char = _SMTPath(
@@ -693,168 +598,139 @@ class Char(_View, _Font):
         # then move.
         path *= f"translate({self.x}, {self.y})"
         return path
-        # return SE.Path(self._glyph, transform=f"rotate({self.rotate}) scale({self.xscale*_toplevel_scaler()} {self.yscale*_toplevel_scaler()})")
     
     # svgelements bbox seems to have a bug getting bboxes of transformed (rotated) paths,
     # use svgpathtools bbox instead (xmin, xmax, ymin, ymax).
     def _bbox(self): return SPT.Path(self._path().d()).bbox()
-    
-    # @property
-    # def left(self): return self._bbox()[0]
-    # @property
-    # def right(self): return self._bbox()[1]
-    # @property
-    # def top(self): return self._bbox()[2]
-    # @property
-    # def bottom(self): return self._bbox()[3]
-    # @property
-    # def width(self): return self.right - self.left
-    # @property
-    # def height(self): return self.bottom - self.top
-    
-    # # X Setters; as these set the x, they have any effect only when x is unlocked.
-    # @left.setter
-    # def left(self, new): self.x += (new - self.left)
-    # @right.setter
-    # def right(self, new): self.x += (new - self.right)
     
     
 
 class _Form(_Canvas, _Font):
 
     def __init__(self, font=None, content=None, **kwargs):
-        self.content = content or []
         _Canvas.__init__(self, **kwargs)
         _Font.__init__(self, font)
+        self.content = content or []
+        self._establish_parent_relation(self.content)
         # The following 3 attributes carry information about the
         # height of a Form object. Each Form is created with a default
-        # (hypothetical) height, which is equal to the height of the
-        # chosen stave (DESIRED_STAFF_HEIGHT_IN_PXL). This hypothetical height
+        # (imaginary) height, which is equal to the height of the
+        # chosen staff (DESIRED_STAFF_HEIGHT_IN_PXL). This imaginary height
         # information can be useful in various contexts, e.g. where
-        # reference to the height of the underlying stave is
+        # reference to the height of the underlying staff is
         # needed. These values are relative to the position of the
-        # Form on the page (they include it's y coordinate). They
+        # Form on the page (they contain it's y coordinate). They
         # should be considered read-only and are updated automatically
         # by the parent Form upon his replacement. Unlike this default
-        # height setup, a Form has no pre-existing width (i.e. = 0).
+        # height setup, a Form has no pre-existing width (i.e. width = 0 pixels).
         self._abstract_staff_height_top = self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
         self._abstract_staff_height_bottom = self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
         self._abstract_staff_height = scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
-        
-        for D in descendants(self, False):
-            D.ancestors.insert(0, self) # Need smteq??
         for c in self.content:
-            # These assignments take place only if xy are not locked!
             c.x = self.x
-            c.y = self.y
-            
-            # if not c.x_locked:
-                # c.x += self.x
-            if not c.y_locked:
-                # # c.y += self.y
-                # c.y = self.y
-                
-                # If child is to be relocated vertically, their fix-top & bottom can not be
-                # the original values, but must move along with the parent.
-                if isinstance(c, _Form):
-                    c._abstract_staff_height_top += self.y
-                    # c._abstract_staff_height_top = self.y
-                    c._abstract_staff_height_bottom += self.y
-                    # Fixheight never changes!
+            c.y = self.y            
+                    
+    def current_ref_glyph_top(self):
+        return self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+
+    def current_ref_glyph_bottom(self):
+        return self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
     
-    def delcont(self, test):
+    def delcont(self, test):    # name: del_content_if
         for i, c in enumerate(self.content):
             if test(c): del self.content[i]
     
-    def _compute_horizontals(self):
-        self._left = self._compute_left()
-        self._right = self._compute_right()
-        self._width = self._compute_width()
+    def refresh_horizontals(self):
+        self._left = self.query_left()
+        self._right = self.query_right()
+        self._width = self.query_width()
 
-    def _compute_verticals(self):
-        self._top = self._compute_top()
-        self._bottom = self._compute_bottom()
-        self._height = self._compute_height()
+    def refresh_verticals(self):
+        self._top = self.query_top()
+        self._bottom = self.query_bottom()
+        # querying the height must happen after refreshing top and bottom
+        self._height = self.query_height()
+    
+    def _establish_parent_relation(self, obj_list):
+        """Establishes parental relationships to each obj in obj_list:
+        adds this object and all it's parents to the ancestors list of
+        new objects and their descendants.
 
+        """
+        for obj in obj_list:
+            for member in family_tree(obj):
+                for parent in ([self] + list(reversed(self.ancestors))):
+                    member.ancestors.insert(0, parent)
+    
     # Children is a sequence. This method modifies only ancestor lists.
     def _establish_parental_relationship(self, children):
         for child in children:
             assert isinstance(child, _SMTObject), "Form can only contain MeObjs!"
             child.ancestors.insert(0, self)
             if isinstance(child, _Form):
-                for D in descendants(child, False):
-                    D.ancestors.insert(0, self)
-            for A in reversed(self.ancestors):
-                child.ancestors.insert(0, A)
+                for desc in descendants(child, False):
+                    desc.ancestors.insert(0, self)
+            for anc in reversed(self.ancestors):
+                child.ancestors.insert(0, anc)
                 if isinstance(child, _Form):
-                    for D in descendants(child, False):
-                        D.ancestors.insert(0, A)
+                    for desc in descendants(child, False):
+                        desc.ancestors.insert(0, anc)
 
     @_Canvas.x.setter
-    def x(self, new):
+    def x(self, new_x):        
         if not self.x_locked:
-            dx = new - self.x
-            self._x = new
-            self._left += dx
-            self._right += dx
-            for D in descendants(self, False):
-                # Descendants' x are shifted by delta-x. 
-                D._x += dx
-                if isinstance(D, _Form):
-                    D._left += dx
-                    D._right += dx
-            for A in reversed(self.ancestors):
-                A._compute_horizontals()
+            dx = new_x - self.x
+            for member in family_tree(self):
+                member._x += dx
+                if isinstance(member, _Form): # Char doesn't have _left/_right
+                    member._left += dx
+                    member._right += dx
+            # moving x might have had an impact on ancestor's height
+            for anc in reversed(self.ancestors):
+                anc.refresh_horizontals()
 
     @_Canvas.y.setter
-    def y(self, new):
+    def y(self, new_y):
         if not self.y_locked:
-            dy = new - self.y
-            self._y = new
-            self._top += dy
-            self._bottom += dy
-            for D in descendants(self, False):
-                D._y += dy
-                if isinstance(D, _Form):
-                    # # D._y += dy
-                    D._top += dy
-                    D._bottom += dy
-            # Shifting Y might have an impact on ancestor's width!
-            for A in reversed(self.ancestors):
-                A._compute_verticals()
-    
-    def _compute_left(self):
+            dy = new_y - self.y
+            for member in family_tree(self): # member will be self too
+                member._y += dy
+                if isinstance(member, _Form): # Char doesn't have _top/_bottom
+                    member._top += dy
+                    member._bottom += dy
+            # moving y might have had an impact on ancestor's width
+            for anc in reversed(self.ancestors):
+                anc.refresh_verticals()
+
+    def query_left(self):
         """Determines the left-most of either: form's own x coordinate 
         or the left-most site of it's direct children."""
-        return min([self.x] + list(map(lambda c: c.left, self.content)))
-        # return min(self.x, *[c.left for c in self.content])
-        # return self._bbox()[0]
+        return min([self.x] + [child.left for child in self.content])
 
-    def _compute_right(self):
+    def query_right(self):
         if self._width_locked: # ,then right never changes!
             return self.left + self.width
         else:
-            return max([self.x] + list(map(lambda c: c.right, self.content)))
-    # def _compute_right(self): return self._bbox()[1]
+            return max([self.x] + [child.right for child in self.content])
 
-    def _compute_width(self):
-        # # print(self.id)
-        # if self._width_locked:
-            # return self.width
-        # else:
-            # return self.right - self.left
-        return self.width if self._width_locked else (self.right - self.left)
+    def query_width(self):
+        if self._width_locked:
+            return self.width
+        else:
+            return self.right - self.left
 
-    def _compute_top(self):
-        return min([self._abstract_staff_height_top] + list(map(lambda c: c.top, self.content)))
-        # return min(self._abstract_staff_height_top, self._bbox()[2])
+    def query_top(self):
+        """Returns the top-most of it's own staff height top or ..."""
+        return min([self.current_ref_glyph_top()] + [child.top for child in self.content])
     
-    def _compute_bottom(self):
-        return max([self._abstract_staff_height_bottom] + list(map(lambda c: c.bottom, self.content)))
-        # return max(self._abstract_staff_height_bottom, self._bbox()[3])
+    def query_bottom(self):
+        return max([self.current_ref_glyph_bottom()] + [child.bottom for child in self.content])
     
-    def _compute_height(self): 
-        return self.height if self.height_locked else self.bottom - self.top
+    def query_height(self):
+        if self.height_locked:
+            return self.height
+        else:
+            return self.bottom - self.top
     
     def pack_svg_list(self):
         # Bbox
@@ -878,30 +754,18 @@ class _Form(_Canvas, _Font):
         if self.origin_visible:
             self._svg_list.extend(origin_elems(self, self.id))
         
-    # def pack_svg_list(self):
-        # # Bbox
-        # if self.canvas_visible:
-            # self._svg_list.append(SW.path.Path(
-                # d=SPT.bbox2path(*self._bbox()).d(),
-                # fill=self.canvas_color,
-                # fill_opacity=self.canvas_opacity, 
-                # id=f"{self.id}-BBox")
-                # )
-        # # Add content
-        # for C in self.content:
-            # C.xscale *= self.xscale
-            # C.yscale *= self.yscale
-            # C.pack_svg_list() # Recursively gather svg elements
-            # self._svg_list.extend(C._svg_list)
-        # # Origin
-        # # if self.origin_visible: self._svg_list.extend(origin_elems(self))
-        
     @property
     def left(self): return self._left
     @property
     def right(self): return self._right
+
     @property
-    def top(self): return self._top
+    def top(self):
+        return self._top
+    @top.setter
+    def top(self, new):
+        self.y += (new - self.top)
+
     @property
     def bottom(self): return self._bottom
     @property
@@ -917,8 +781,6 @@ class _Form(_Canvas, _Font):
     @right.setter
     def right(self, new): 
         self.x += (new - self.right)
-    @top.setter
-    def top(self, new): self.y += (new - self.top)
     
     @width.setter
     def width(self, new):
@@ -927,21 +789,7 @@ class _Form(_Canvas, _Font):
             self._width = new
             # self.right = self.left + new
             for A in reversed(self.ancestors):
-                A._compute_horizontals()
-    
-    # # SPT bbox output: xmin, xmax, ymin, ymax
-    # def _bbox(self):
-        # # print(">>",self.id, [[*c._bbox()] for c in self.content])
-        # # return SPT.Path(*[SPT.bbox2path(*c._bbox()) for c in self.content]).bbox()
-        # if self.content:
-            # bboxs = [c._bbox() for c in self.content]
-            # minx = min(self.x, *[bb[0] for bb in bboxs])
-            # maxx = max(self.x, *[bb[1] for bb in bboxs])
-            # miny = min(self.y, *[bb[2] for bb in bboxs])
-            # maxy = max(self.y, *[bb[3] for bb in bboxs])
-            # return SPT.Path(SPT.bbox2path(minx, maxx, miny, maxy)).bbox()
-        # else:
-            # return 0, 0, self._abstract_staff_height_top, self._abstract_staff_height_bottom
+                A.refresh_horizontals()
 
 
 class SForm(_Form):
@@ -952,9 +800,11 @@ class SForm(_Form):
         self.domain = kwargs.get("domain", "stacked")
         # Content may contain children with absolute x, so compute horizontals with respect to them.
         # See whats happening in _Form init with children without absx!
-        self._compute_horizontals()
-        self._compute_verticals()
-    
+        self.refresh_horizontals()
+        self.refresh_verticals()
+
+    def lineup(self): pass
+        
     # Sinnvoll nur in rule-application-time?!!!!!!!!!!!!!!!
     def append(self, *children):
         """Appends new children to Form's content list."""
@@ -965,80 +815,91 @@ class SForm(_Form):
         self.content.extend(children)
         # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # # which would have been to early!????
-        self._compute_horizontals()
-        self._compute_verticals()
+        self.refresh_horizontals()
+        self.refresh_verticals()
         for A in reversed(self.ancestors):
             if isinstance(A, _Form) and not isinstance(A, SForm):
-                A._lineup()
-            A._compute_horizontals()
-            A._compute_verticals()
+                A.lineup()
+            A.refresh_horizontals()
+            A.refresh_verticals()
 
 
 class HForm(_Form):
 
     def __init__(self, **kwargs):
         _Form.__init__(self, **kwargs)
-        # self.abswidth = abswidth
         self.canvas_color = SW.utils.rgb(0, 0, 100, "%")
         self.domain = kwargs.get("domain", "horizontal")
-        # Lineup content created at init-time,
-        self._lineup()
-        # then compute surfaces.
-        self._compute_horizontals()
-        self._compute_verticals()
+        self.lineup()
+        self.refresh_horizontals()
+        self.refresh_verticals()
+    
+    def append(self, *children):
+        """Appends new children to Form's content list."""
+        # self._establish_parental_relationship(children)
+        self._establish_parent_relation(children)
+        for new_obj in children:
+            new_obj.x = self.x
+            new_obj.y = self.y
+        self.content.extend(children)
+        # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
+        # # which would have been to early!????
+        self.lineup()
+        self.refresh_horizontals()
+        self.refresh_verticals()
+        for anc in reversed(self.ancestors):
+            anc.lineup()
+            anc.refresh_horizontals()
+            anc.refresh_verticals()
             
-    def _lineup(self):
+    def lineup(self):
         for a, b in zip(self.content[:-1], self.content[1:]):            
             b.left = a.right
 
 class VForm(_Form):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._lineup()
-        self._compute_horizontals()
-        self._compute_verticals()
-    def _lineup(self):
+        self.lineup()
+        self.refresh_horizontals()
+        self.refresh_verticals()
+    
+    def lineup(self):
         for a, b in zip(self.content[:-1], self.content[1:]):
             b.top = a.bottom
+    
     def append(self, *children):
         """Appends new children to Form's content list."""
         self._establish_parental_relationship(children)
+        # self._establish_parent_relation(children)
         for c in children:
             c.x = self.x
             c.y = self.y
         self.content.extend(children)
         # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # # which would have been to early!????
-        self._lineup()
-        self._compute_horizontals()
-        self._compute_verticals()
-        for A in reversed(self.ancestors):
-            if isinstance(A, _Form) and not isinstance(A, SForm): # V & H
-                A._lineup()
-            A._compute_horizontals()
-            A._compute_verticals()
+        self.lineup()
+        self.refresh_horizontals()
+        self.refresh_verticals()
+        for anc in reversed(self.ancestors):
+            anc.lineup()
+            anc.refresh_horizontals()
+            anc.refresh_verticals()
         
-# https://github.com/meerk40t/svgelements/issues/102
+
 class _LineSeg(_View):
-    """Angle in degrees"""
+    """Angle in degrees
+    https://github.com/meerk40t/svgelements/issues/102
+    """
     def __init__(self, length=None, direction=None, thickness=None, angle=None, endxr=None, endyr=None,
     # start=None, end=None,
     **kwargs):
         super().__init__(**kwargs)
         self.length = length or 0
-        # self.color = color or SW.utils.rgb(0, 0, 0)
-        # self.opacity = opacity
         self._angle = angle or 0
         self._thickness = thickness or 0
         self.direction = direction or 1
         self.endxr = endxr or 0
         self.endyr = endyr or 0
-        # self.start = start
-        # self.end = end
-        # self._x2 = 
-        # self._y2=y2
-        # self._compute_horizontals()
-        # self._compute_verticals()
 
 
     # Override canvas packsvglist
@@ -1065,30 +926,6 @@ class _LineSeg(_View):
         if self.origin_visible:
             for elem in origin_elems(self, line.id):
                 self._svg_list.append(elem)
-        
-        
-    # @property
-    # def length(self): return self._length
-    
-    # @_Canvas.x.setter
-    # def x(self, new):
-        # if not self.x_locked:
-            # # dx = new - self.x
-            # self._x = new
-            # # self._left += dx
-            # # self._right += dx
-            # for A in reversed(self.ancestors): # An ancestor is always a Form!!
-                # A._compute_horizontals()
-    
-    # @_Canvas.y.setter
-    # def y(self, new): 
-        # if not self.y_locked:
-            # # dy = new - self.y
-            # self._y = new
-            # # self._top += dy
-            # # self._bottom += dy
-            # for A in reversed(self.ancestors): # An ancestor is always a Form!!
-                # A._compute_verticals()
     
     @property
     def thickness(self): return self._thickness
@@ -1149,15 +986,15 @@ class VLineSeg(_LineSeg):
     # def _compute_width(self): return self.thickness
     # def _compute_left(self): return self.x - self.thickness*.5
     # def _compute_right(self): return self.x + self.thickness*.5
-    # def _compute_height(self): return self.length
-    # def _compute_bottom(self): return self.y + self.length
-    # def _compute_top(self): return self.y
+    # def query_height(self): return self.length
+    # def query_bottom(self): return self.y + self.length
+    # def query_top(self): return self.y
     # @_LineSeg.length.setter
     # def length(self, new):
         # self._length = new
-        # self._compute_verticals()
+        # self.refresh_verticals()
         # for a in reversed(self.ancestors):
-            # a._compute_verticals()
+            # a.refresh_verticals()
 
 class HLineSeg(_LineSeg):
     
@@ -1178,13 +1015,3 @@ class HLineSeg(_LineSeg):
         rect *= f"skew({self.skewx}, {self.skewy}, {self.x}, {self.y})"
         rect *= f"rotate({self.rotate}deg, {self.x}, {self.y})"
         return rect
-    # def _compute_width(self): return self.length
-    # def _compute_height(self): return self.thickness
-    # def _compute_left(self): return self.x
-    # def _compute_right(self): return self.x + self.length
-    # def _compute_top(self): return self.y - self.thickness*.5
-    # def _compute_bottom(self): return self.y + self.thickness*.5
-
-
-
-

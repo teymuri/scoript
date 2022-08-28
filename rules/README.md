@@ -17,3 +17,7 @@ _Bei der Hersetllung der Stichplatte unterscheiden wir drei Vorgänge:_
 >>>
 
 Im Unterscied zu oben haben wir: 1.1, 2, 1.2 + 1.3
+
+## Small slures have their own punches!
+https://www.youtube.com/watch?v=C2k1Y2GzXDU
+heißt die wurden gar nicht mit Hand gestochen, sondern hatten eine feste Form!!! :-D
