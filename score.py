@@ -30,8 +30,13 @@ def clock_chunks(content_list):
     return chunks
 
 class _Pitch:
-    def __init__(self, pitch):
-        self.pitch = pitch
+    def __init__(self, name: str, suffix: str, octave: int):
+        self.name = name
+        # calling accidentals suffix because of lacking a better name,
+        # didn't want to colide with the name accidental, search a
+        # better term!
+        self.suffix = suffix
+        self.octave = octave
 
 
 
@@ -52,7 +57,7 @@ class StaffLines(VForm):
                             canvas_visible=True,
                             canvas_opacity=0.1,
                             visible=True)
-            obj.append(line)
+            obj.extend_content(line)
 
 class Staff(HForm):
     def __init__(self, **kwargs):
@@ -73,7 +78,7 @@ class Barline(SForm):
     @char.setter
     def char(self, new):
         self._char = new
-        self.append(self._char)
+        self.extend_content(self._char)
 
 class KeySig(HForm):
     
@@ -89,22 +94,30 @@ class KeySig(HForm):
     @char_list.setter
     def char_list(self, new_list):
         self._char_list = new_list
-        self.append(*self._char_list)
+        self.extend_content(*self._char_list)
 
 
-class Stem(E.VLineSeg):
+class Stem(VLineSeg):
+
+    THICKNESS = StaffLines.THICKNESS * 0.85
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # See Gould page 14 (Stem Length)
+        self.length = DESIRED_STAFF_SPACE_IN_PX * 3.5
+        self.thickness = StaffLines.THICKNESS * 0.85
+        self.endxr = self.endyr = 2
 
 class OpenBeam(E.HLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class Note(SForm, Clock, _Pitch):
+class Note(SForm, Clock):
     def __init__(self, head_punch=None, stem_graver=None, obeam_graver=None, cbeam_graver=None,
     duration=None, pitch=None, **kwargs):
         Clock.__init__(self, duration)
-        _Pitch.__init__(self, pitch)
+        # _Pitch.__init__(self, pitch)
+        self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])
         E.SForm.__init__(self, **kwargs)
         
         self._obeam_graver=obeam_graver
@@ -119,7 +132,7 @@ class Note(SForm, Clock, _Pitch):
     def head_punch(self, newhead):
         # wird auch flag sein!!!!!!!!!!!!!!!!!!!!!!!!!!
         self._head_punch = newhead
-        self.append(self._head_punch)
+        self.extend_content(self._head_punch)
 
     @property
     def stem_graver(self): return self._stem_graver
@@ -128,25 +141,26 @@ class Note(SForm, Clock, _Pitch):
         # Allow only a single stem_graver per note?
         self.delcont(lambda c: isinstance(c, Stem))
         self._stem_graver = newstem
-        self.append(self._stem_graver)
+        self.extend_content(self._stem_graver)
     @property
     def obeam_graver(self): return self._obeam_graver
     @obeam_graver.setter
     def obeam_graver(self, new):
         self._obeam_graver = new
-        self.append(self._obeam_graver)
+        self.extend_content(self._obeam_graver)
     @property
     def cbeam_graver(self): return self._cbeam_graver
     @cbeam_graver.setter
     def cbeam_graver(self, new):
         self._cbeam_graver = new
-        self.append(self._cbeam_graver)
+        self.extend_content(self._cbeam_graver)
 
 
 class Accidental(SForm):
     def __init__(self, pitch=None, **kwargs):
         SForm.__init__(self, **kwargs)
-        self.pitch = pitch      # e.g. ("f", 5, "#")
+        # self.pitch = pitch      # e.g. ("f", 5, "#")
+        self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])
         self._char = None
         
     @property
@@ -156,13 +170,14 @@ class Accidental(SForm):
     def char(self, new):
         self.delcont(lambda c: isinstance(c, Char))
         self._char = new
-        self.append(self._char)
+        self.extend_content(self._char)
 
 
-class Clef(SForm, _Pitch):
+class Clef(SForm):
     def __init__(self, pitch=None, **kwargs):
         SForm.__init__(self, **kwargs)
-        _Pitch.__init__(self, pitch)
+        # _Pitch.__init__(self, pitch)
+        self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])
         self._char = None
 
     @property
@@ -171,7 +186,7 @@ class Clef(SForm, _Pitch):
     def char(self, new):
         self.delcont(lambda c: isinstance(c, e.Char))
         self._char = new
-        self.append(self._char)
+        self.extend_content(self._char)
 
 class SimpleTimeSig(E.VForm):
     def __init__(self, num=4, denom=4, **kwargs):
@@ -186,7 +201,7 @@ class SimpleTimeSig(E.VForm):
     @num_char.setter
     def num_char(self, new):
         self._num_char = new
-        self.append(self._num_char)
+        self.extend_content(self._num_char)
     
     @property
     def denom_char(self): return self._denom_char
@@ -195,5 +210,5 @@ class SimpleTimeSig(E.VForm):
         if self._denom_char: # First time setting in a rule
             self.delcont(lambda c: c.id == self._denom_char.id)
         self._denom_char = new
-        self.append(self._denom_char)
+        self.extend_content(self._denom_char)
     

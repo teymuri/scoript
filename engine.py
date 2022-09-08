@@ -6,6 +6,7 @@ Semantic Music Typesetting
 import tempfile
 import json
 import os
+import cfg                      # 
 import xml.etree.ElementTree as ET
 import subprocess as sp
 import copy as cp
@@ -83,17 +84,17 @@ def get_glyph(name, font):
 # of the staff. Note that this name should exist in the font we are
 # using. See also Chlapik page 33.
 STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
-
+UNDEFINED_GLYPH = ".notdef"
 
 ##### Rastral, Dimensions, Margins
 
 # 1 mm = 3.7795275591 pixels
-MM_PIX_FACTOR = 3.7795275591
+MM_TO_PX_FACTOR = 3.7795275591
 
 def mm_to_px(mm):
     """Converts millimeter to pixels. 
     """
-    return mm * MM_PIX_FACTOR
+    return mm * MM_TO_PX_FACTOR
 
 # Gould, page 483
 GOULD_STAFF_HEIGHTS_IN_MM = {
@@ -107,7 +108,7 @@ CHLAPIK_STAFF_SPACES_IN_MM = {
     5: 1.532, 6: 1.4, 7: 1.19, 8: 1.02
 }
 
-DESIRED_STAFF_HEIGHT_IN_PXL = mm_to_px(GOULD_STAFF_HEIGHTS_IN_MM[0])
+DESIRED_STAFF_HEIGHT_IN_PX = mm_to_px(GOULD_STAFF_HEIGHTS_IN_MM[0])
 DESIRED_STAFF_SPACE_IN_PX = mm_to_px(GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
 
 # This factor should be used to scale all objects globally
@@ -117,13 +118,13 @@ GLOBAL_SCALE_FACTOR = 1.0
 def scale_by_staff_height_factor(r):
     """Scales the number r by the chosen staff's height. The staff
     height factor is the ratio between the desired height of our staff
-    (the global DESIRED_STAFF_HEIGHT_IN_PXL) and the height of the chosen reference
+    (the global DESIRED_STAFF_HEIGHT_IN_PX) and the height of the chosen reference
     glyph (which is by default the alto clef, as described by Chlapik
     on page 33). The global scale factor is present to let us control
     scaling globally for all objects.
     """
     raw_staff_height = get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, "haydn-11")["height"]
-    staff_height_factor = DESIRED_STAFF_HEIGHT_IN_PXL / raw_staff_height
+    staff_height_factor = DESIRED_STAFF_HEIGHT_IN_PX / raw_staff_height
     return r * GLOBAL_SCALE_FACTOR * staff_height_factor
 
 
@@ -337,7 +338,7 @@ class _SMTObject(_Identifiable):
         print("APPLYING RULES:")
         # mark all rules as unapplied, this is necessary because
         # apply_rules could be called multiple times by render for
-        # each of it's argument.
+        # each of it's items.
         RuleTable.reset()
         while True:
             # pending_rule_tables = _pending_rule_tables()
@@ -357,15 +358,15 @@ class _SMTObject(_Identifiable):
                         # get in each round the up-to-date list of family_tree (possibly new objects have been added etc....)
                         applied_to_something = False
                         # if rt.log: print(", APPLIED:", end=" ")
-                        for m in family_tree(self):
+                        for member in family_tree(self):
                             # Call the predicate function to decide
                             # whether to apply the rule or not.
-                            if rule["pred"](m):
-                                rule["hook"](m)
+                            if rule["pred"](member):
+                                rule["hook"](member)
                                 applied_to_something = True
                                 if rt.log: print("✓", end="")
-                                if isinstance(m, (HForm, VForm)):
-                                    m.lineup()
+                                if isinstance(member, (HForm, VForm)):
+                                    member.lineup()
                         if not applied_to_something and rt.log:
                             print("✘")
                         elif applied_to_something and rt.log:
@@ -410,6 +411,7 @@ def render(*items, path="/tmp/smt"):
 
 
 class _Canvas(_SMTObject):
+
     def __init__(self,
                  canvas_color=None,
                  canvas_opacity=None,
@@ -434,9 +436,9 @@ class _Canvas(_SMTObject):
         self._is_hlineup_head = False
         self.rotate=rotate
         self.canvas_opacity = canvas_opacity or 0.3
-        self.canvas_visible = canvas_visible
+        self.canvas_visible = cfg.CANVAS_VISIBLE and canvas_visible
         self.canvas_color = canvas_color or SW.utils.rgb(20, 20, 20, "%")
-        self.origin_visible = origin_visible
+        self.origin_visible = cfg.ORIGIN_VISIBLE and origin_visible
         self._xscale = xscale
         self._yscale = yscale
         # Permit zeros for x and y. xy will be locked if supplied as arguments.
@@ -615,7 +617,7 @@ class _Form(_Canvas, _Font):
         # The following 3 attributes carry information about the
         # height of a Form object. Each Form is created with a default
         # (imaginary) height, which is equal to the height of the
-        # chosen staff (DESIRED_STAFF_HEIGHT_IN_PXL). This imaginary height
+        # chosen staff (DESIRED_STAFF_HEIGHT_IN_PX). This imaginary height
         # information can be useful in various contexts, e.g. where
         # reference to the height of the underlying staff is
         # needed. These values are relative to the position of the
@@ -806,8 +808,8 @@ class SForm(_Form):
     def lineup(self): pass
         
     # Sinnvoll nur in rule-application-time?!!!!!!!!!!!!!!!
-    def append(self, *children):
-        """Appends new children to Form's content list."""
+    def extend_content(self, *children):
+        """Extend_Contents new children to Form's content list."""
         self._establish_parental_relationship(children)
         for c in children:
             c.x = self.x
@@ -834,8 +836,8 @@ class HForm(_Form):
         self.refresh_horizontals()
         self.refresh_verticals()
     
-    def append(self, *children):
-        """Appends new children to Form's content list."""
+    def extend_content(self, *children):
+        """Extend_Contents new children to Form's content list."""
         # self._establish_parental_relationship(children)
         self._establish_parent_relation(children)
         for new_obj in children:
@@ -867,8 +869,8 @@ class VForm(_Form):
         for a, b in zip(self.content[:-1], self.content[1:]):
             b.top = a.bottom
     
-    def append(self, *children):
-        """Appends new children to Form's content list."""
+    def extend_content(self, *children):
+        """Extend_Contents new children to Form's content list."""
         self._establish_parental_relationship(children)
         # self._establish_parent_relation(children)
         for c in children:
@@ -928,7 +930,12 @@ class _LineSeg(_View):
                 self._svg_list.append(elem)
     
     @property
-    def thickness(self): return self._thickness
+    def thickness(self):
+        return self._thickness
+    @thickness.setter
+    def thickness(self, new):
+        self._thickness = new
+    
     # xmin, xmax, ymin, ymax
     def _bbox(self):
         return SPT.Path(self._rect().d()).bbox()
