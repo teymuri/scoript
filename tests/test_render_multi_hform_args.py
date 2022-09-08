@@ -43,7 +43,7 @@ def test_hform_list_with_diff_durs(asset):
                       y=60 + i * 70,
                       canvas_visible=True,
                       origin_visible=True)
-        hs.append(h)
+        hs.extend_content(h)
     action_utils.genass_or_cmp(hs, currentframe().f_code.co_name, __file__, asset)
 
 def test_twelve_hform_list(asset):
@@ -66,7 +66,7 @@ def test_twelve_hform_list(asset):
                       y=60 + i * 120,
                       canvas_visible=True,
                       origin_visible=True)
-        hs.append(h)
+        hs.extend_content(h)
     action_utils.genass_or_cmp(hs, currentframe().f_code.co_name, __file__, asset)
 
 def test_only_valued_objs(asset):
@@ -98,6 +98,6 @@ def test_only_valued_objs(asset):
                       y=60 + i * 70,
                       canvas_visible=True,
                       origin_visible=True)
-        hs.append(h)
+        hs.extend_content(h)
     action_utils.genass_or_cmp(hs, currentframe().f_code.co_name, __file__, asset)
 

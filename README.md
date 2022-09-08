@@ -15,10 +15,10 @@ Generally how defining new rules happens is as follows:
 are by default (if not correct them) in pixels only.
 
 ## Coordinate Movement of Objects
-When you move an object's y coordinate
-- incrementing (+) is downwards
-- decrementing (-) is upwards
+When you move an object's **y coordinate**
+- **incrementing** (+) is to the **bottom**
+- **decrementing** (-) is to the **top**
 
-When moving an object's x coordinate
-- to the right is ?
-- to the left is ?
+When moving an object's **x coordinate**
+- **incrementing** (+) is to the **right**
+- **decrementing** (-) is to the **left**
