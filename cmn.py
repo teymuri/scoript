@@ -10,7 +10,7 @@ import random
 import cfg
 from engine import (RuleTable, render, HForm, mm_to_px, HLineSeg,
                     DESIRED_STAFF_SPACE_IN_PX, Char, CMN, VLineSeg,
-                    UNDEFINED_GLYPH, DESIRED_STAFF_HEIGHT_IN_PX)
+                    DESIRED_STAFF_HEIGHT_IN_PX)
 from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem)
 
 
@@ -113,7 +113,7 @@ def is_accidental(obj):
 
 def set_accidental_char(obj):
     name = {"#": "accidentals.sharp"}.get(obj.pitch.suffix,
-                                         UNDEFINED_GLYPH)
+                                          cfg.UNDEFINED_GLYPH)
     char = Char(name=name)
     obj.char = char
     obj.char.y = _pitch_vertical_pos(obj)

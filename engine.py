@@ -80,39 +80,18 @@ def get_glyph(name, font):
 # _fonts = {}
 # current_font = "Haydn"
 
-# We use the height of the alto clef as the reference for the height
-# of the staff. Note that this name should exist in the font we are
-# using. See also Chlapik page 33.
-STAFF_HEIGHT_REFERENCE_GLYPH = "clefs.C"
-UNDEFINED_GLYPH = ".notdef"
 
-##### Rastral, Dimensions, Margins
 
-# 1 mm = 3.7795275591 pixels
-MM_TO_PX_FACTOR = 3.7795275591
 
 def mm_to_px(mm):
-    """Converts millimeter to pixels. 
+    """Converts millimeter to pixels.
+    1 mm = 3.7795275591 pixels
     """
-    return mm * MM_TO_PX_FACTOR
+    return mm * 3.7795275591
 
-# Gould, page 483
-GOULD_STAFF_HEIGHTS_IN_MM = {
-    0: 9.2, 1: 7.9, 2: 7.4, 3: 7.0,
-    4: 6.5, 5: 6.0, 6: 5.5, 7: 4.8,
-    8: 3.7
-}
-# Chlapik, page 32
-CHLAPIK_STAFF_SPACES_IN_MM = {
-    2: 1.88, 3: 1.755, 4: 1.6,
-    5: 1.532, 6: 1.4, 7: 1.19, 8: 1.02
-}
 
-DESIRED_STAFF_HEIGHT_IN_PX = mm_to_px(GOULD_STAFF_HEIGHTS_IN_MM[0])
-DESIRED_STAFF_SPACE_IN_PX = mm_to_px(GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
-
-# This factor should be used to scale all objects globally
-GLOBAL_SCALE_FACTOR = 1.0
+DESIRED_STAFF_HEIGHT_IN_PX = mm_to_px(cfg.GOULD_STAFF_HEIGHTS_IN_MM[0])
+DESIRED_STAFF_SPACE_IN_PX = mm_to_px(cfg.GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
 
 
 def scale_by_staff_height_factor(r):
@@ -123,9 +102,9 @@ def scale_by_staff_height_factor(r):
     on page 33). The global scale factor is present to let us control
     scaling globally for all objects.
     """
-    raw_staff_height = get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, "haydn-11")["height"]
+    raw_staff_height = get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, "haydn-11")["height"]
     staff_height_factor = DESIRED_STAFF_HEIGHT_IN_PX / raw_staff_height
-    return r * GLOBAL_SCALE_FACTOR * staff_height_factor
+    return r * cfg.GLOBAL_SCALE_FACTOR * staff_height_factor
 
 
 _LEFT_MARGIN = mm_to_px(36)
@@ -522,9 +501,18 @@ class _View(_Canvas):
     @property
     def left(self):
         return self._bbox()[0]
+    # X Setters; as these set the x, they have any effect only when x is unlocked.
+    @left.setter
+    def left(self, new):
+        self.x += (new - self.left)
     
     @property
-    def right(self): return self._bbox()[1]
+    def right(self):
+        return self._bbox()[1]
+
+    @right.setter
+    def right(self, new):
+        self.x += (new - self.right)
     
     @property
     def top(self):
@@ -532,15 +520,22 @@ class _View(_Canvas):
 
     @property
     def bottom(self): return self._bbox()[3]
+    
     @property
-    def width(self): return self.right - self.left
+    def width(self):
+        return self.right - self.left
+
+    @width.setter
+    def width(self, new):
+        if not self._width_locked:
+            self._right = self.left + new
+            self._width = new
+            for anc in reversed(self.ancestors):
+                anc.refresh_horizontals()
+
     @property
     def height(self): return self.bottom - self.top
-    # X Setters; as these set the x, they have any effect only when x is unlocked.
-    @left.setter
-    def left(self, new): self.x += (new - self.left)
-    @right.setter
-    def right(self, new): self.x += (new - self.right)
+
     # Y setters
     @top.setter
     def top(self, new): self.y += (new - self.top)
@@ -625,18 +620,18 @@ class _Form(_Canvas, _Font):
         # should be considered read-only and are updated automatically
         # by the parent Form upon his replacement. Unlike this default
         # height setup, a Form has no pre-existing width (i.e. width = 0 pixels).
-        self._abstract_staff_height_top = self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        self._abstract_staff_height_bottom = self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
-        self._abstract_staff_height = scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
+        self._abstract_staff_height_top = self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        self._abstract_staff_height_bottom = self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        self._abstract_staff_height = scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
         for c in self.content:
             c.x = self.x
             c.y = self.y            
                     
     def current_ref_glyph_top(self):
-        return self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        return self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
 
     def current_ref_glyph_bottom(self):
-        return self.y + scale_by_staff_height_factor(get_glyph(STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        return self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
     
     def delcont(self, test):    # name: del_content_if
         for i, c in enumerate(self.content):
@@ -757,7 +752,13 @@ class _Form(_Canvas, _Font):
             self._svg_list.extend(origin_elems(self, self.id))
         
     @property
-    def left(self): return self._left
+    def left(self):
+        return self._left
+
+    @left.setter
+    def left(self, new):
+        self.x += (new - self.left)
+
     @property
     def right(self): return self._right
 
@@ -770,20 +771,11 @@ class _Form(_Canvas, _Font):
 
     @property
     def bottom(self): return self._bottom
+
     @property
-    def width(self): return self._width
-    @property
-    def height(self): return self._height
-    
-    # Setters
-    @left.setter
-    def left(self, new):
-        self.x += (new - self.left)
-    
-    @right.setter
-    def right(self, new): 
-        self.x += (new - self.right)
-    
+    def width(self):
+        return self._width
+
     @width.setter
     def width(self, new):
         if not self._width_locked:
@@ -792,6 +784,15 @@ class _Form(_Canvas, _Font):
             # self.right = self.left + new
             for A in reversed(self.ancestors):
                 A.refresh_horizontals()
+
+    @property
+    def height(self): return self._height
+    
+    
+    @right.setter
+    def right(self, new): 
+        self.x += (new - self.right)
+    
 
 
 class SForm(_Form):
