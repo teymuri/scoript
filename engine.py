@@ -626,7 +626,10 @@ class _Form(_Canvas, _Font):
         for c in self.content:
             c.x = self.x
             c.y = self.y            
-                    
+        #
+        self.REF_GLYPH_HEIGHT = scale_by_staff_height_factor(
+            get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"]
+        )
     def current_ref_glyph_top(self):
         return self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
 
@@ -893,7 +896,8 @@ class _LineSeg(_View):
     """Angle in degrees
     https://github.com/meerk40t/svgelements/issues/102
     """
-    def __init__(self, length=None, direction=None, thickness=None, angle=None, endxr=None, endyr=None,
+    def __init__(self, length=None, direction=None,
+                 thickness=None, angle=None, endxr=None, endyr=None,
     # start=None, end=None,
     **kwargs):
         super().__init__(**kwargs)
@@ -903,7 +907,6 @@ class _LineSeg(_View):
         self.direction = direction or 1
         self.endxr = endxr or 0
         self.endyr = endyr or 0
-
 
     # Override canvas packsvglist
     def pack_svg_list(self):

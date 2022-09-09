@@ -11,7 +11,7 @@ import cfg
 from engine import (RuleTable, render, HForm, mm_to_px, HLineSeg,
                     DESIRED_STAFF_SPACE_IN_PX, Char, CMN, VLineSeg,
                     DESIRED_STAFF_HEIGHT_IN_PX)
-from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem)
+from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline)
 
 
 """
@@ -221,7 +221,7 @@ def _find_ref_dur(durs_to_count: dict[str, int]) -> str:
     return max(durs_to_count, key=durs_to_count.get)
 
     
-def do_horizontal_spacing(staff):
+def horizontal_spacing(staff):
     # breakpoint()
     # get sum of all non-valued character's width of the staff
     non_valued_objs = [x for x in staff.content if not isinstance(x, Note)]
@@ -229,7 +229,7 @@ def do_horizontal_spacing(staff):
     non_valued_objs_space = 0
     for x in non_valued_objs:
         non_valued_objs_space += x.width
-        if not (isinstance(x, Barline) and x.is_last_child()):
+        if not (isinstance(x, (FinalBarline, Barline)) and x.is_last_child()):
             non_valued_objs_space += RIGHT_MARGIN[type(x)]
     # get the remaining space for valued objs
     remain_space = staff.width - non_valued_objs_space
@@ -255,7 +255,7 @@ def do_horizontal_spacing(staff):
             else:
                 # A barline at the end of the staff doesn't need it's
                 # right margin.
-                if not (isinstance(obj, Barline) and obj.is_last_child()):
+                if not (isinstance(obj, (FinalBarline, Barline)) and obj.is_last_child()):
                     obj.width += RIGHT_MARGIN[type(obj)]
     
 def punctsys(h):
@@ -329,12 +329,7 @@ def skew(stave):
     print(stave.skewx)
 def ishline(x): return isinstance(x,S.E.HLineSeg)
 def is_barline(x): return isinstance(x, Barline)
-def place_barline(barline):
-    # note = barline.ancestors[0].content[-2]
-    note = barline.direct_older_sibling()
-    barline.length = note._abstract_staff_height + StaffLines.THICKNESS
-    barline.x = note.right
-    barline.y = note._abstract_staff_height_top - StaffLines.THICKNESS * .5
+
 def set_barline_char(obj):
     # obj is a barline object
     obj.char = VLineSeg(length=obj._abstract_staff_height + StaffLines.THICKNESS,
@@ -346,6 +341,20 @@ def set_barline_char(obj):
                         canvas_opacity=0.1,
                         visible=True)
 
+def is_final_barline(obj):
+    return isinstance(obj, FinalBarline)
+
+def place_final_barline(obj):
+    obj.x = obj.direct_older_sibling().right
+    # obj.thin.x = obj.direct_older_sibling().right
+    obj.y = obj.current_ref_glyph_top() - StaffLines.THICKNESS * .5
+    # The thin barline is placed 1/2 staff spaces before the thick one
+    # (Gould, p.39)
+    obj.thick.x = obj.x + DESIRED_STAFF_SPACE_IN_PX * .5
+    obj.thick.x_locked =True
+    # obj.extend_content(obj.thin, obj.thick)
+    
+    
 # S.E.CMN.add(skew, isline, "SKEW stave")
 # S.E.CMN.unsafeadd(skew, isline, "SKEW stave")
 
@@ -392,15 +401,16 @@ S.E.CMN.unsafeadd(set_stem_line, isnote, "setting stems...",)
 S.E.CMN.unsafeadd(set_clef_char, isclef, "Make clefs")
 
 CMN.unsafeadd(set_barline_char, lambda obj: is_barline(obj), "placing barlines")
-
+CMN.unsafeadd(place_final_barline,is_final_barline,
+              "placing final barline...")
 # S.E.CMN.unsafeadd(punctsys,
 #                   # isline,
 #                   lambda x: isinstance(x, HForm),
 #                   "Punctuate",)
 
-CMN.unsafeadd(do_horizontal_spacing,
+CMN.unsafeadd(horizontal_spacing,
               lambda x: isinstance(x, Staff),
-              "do_horizontal_spacing,")
+              "horizontal_spacing,")
 
 CMN.unsafeadd(StaffLines.make,
               lambda obj: isnote(obj) or \
@@ -410,6 +420,7 @@ CMN.unsafeadd(StaffLines.make,
               is_keysig(obj) or \
               is_barline(obj) and not obj.is_last_child(),
               "Draws stave ontop/behind(?)")
+
 
 if __name__ == "__main__":
     # a = Accidental(pitch=("f", 5, "#"))

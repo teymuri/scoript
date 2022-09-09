@@ -65,13 +65,12 @@ class Staff(HForm):
 
 class Barline(SForm):
     # Gould, page 38: The barline is thicker than a stave-line ...
-    THICKNESS = StaffLines.THICKNESS + 1
+    THICKNESS = StaffLines.THICKNESS + .5
     def __init__(self, type="single", **kwargs):
         # Types by Gould: single, double, final, repeat
         self.type = type
         self._char = None
         super().__init__(**kwargs)
-
     @property
     def char(self):
         return self._char
@@ -80,6 +79,20 @@ class Barline(SForm):
         self._char = new
         self.extend_content(self._char)
 
+class FinalBarline(HForm):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.thick = VLineSeg(
+            length=self.REF_GLYPH_HEIGHT + StaffLines.THICKNESS,
+            # The thick final line is of beam thickness (Gould, p. 39).
+            thickness=3         # ???
+        )
+        self.thin = VLineSeg(
+            length=self.REF_GLYPH_HEIGHT + StaffLines.THICKNESS,
+            thickness=Barline.THICKNESS
+        )
+        self.extend_content(self.thin, self.thick)
+        
 class KeySig(HForm):
     
     def __init__(self, scale, **kwargs):
@@ -98,14 +111,13 @@ class KeySig(HForm):
 
 
 class Stem(VLineSeg):
-
-    THICKNESS = StaffLines.THICKNESS * 0.85
-    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # See Gould page 14 (Stem Length)
         self.length = DESIRED_STAFF_SPACE_IN_PX * 3.5
-        self.thickness = StaffLines.THICKNESS * 0.85
+        # According to Gould (p. 13, Stems) stems are thinner than
+        # staff lines, but I don't like it!
+        self.thickness = StaffLines.THICKNESS
         self.endxr = self.endyr = 2
 
 class OpenBeam(E.HLineSeg):
