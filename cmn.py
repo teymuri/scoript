@@ -18,7 +18,7 @@ import copy
 
 
 
-cfg.CANVAS_VISIBLE = cfg.ORIGIN_VISIBLE = False
+#cfg.CANVAS_VISIBLE = cfg.ORIGIN_VISIBLE = False
 
 def _treble_pitch_offset_from_staff_bottom(obj):
     return obj.current_ref_glyph_bottom() + {
@@ -127,8 +127,8 @@ def isnote(x): return isinstance(x,S.Note)
 
 def isstem(o): return isinstance(o, S.Stem)
 def set_stem_line(note):
-    if note.duration in ("q", "h"):
-        stem = Stem(x=note.x+.4,
+    if note.duration in ("q", "h"): # needs stem
+        stem = Stem(x=note.x+.7,
                     y=note.head_punch.y)
         note.stem_graver = stem
 
@@ -487,88 +487,83 @@ if __name__ == "__main__":
     #           y=60,
     #           canvas_visible=True,
     #           origin_visible=True)
-
-
-    # Auf der Mauer, auf der Lauer
-    bass = Clef(pitch=("f", 3, ""))
-    keysig = KeySig(scale="dmaj", domain="bass")
-    timesig = SimpleTimeSig()
-    first_8_bars = [
-        bass, keysig, timesig,
-        # t 1
-        Note(duration="q",
-             pitch=("d", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("d", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("d", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("e", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="q",
-             pitch=("e", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("d", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("e", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="h",
-             pitch=("d", 3, ""),
-             domain="bass"),
-        Note(duration="h",
-             pitch=("d", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("g", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="q",
+    def _keysig(): return KeySig(scale="dmaj", domain="bass")
+    def _clef(): return Clef(pitch=("f", 3, ""))
+    def _timesig(): return SimpleTimeSig()
+    def t1(): return [Note(duration="q",
+                            pitch=("d", 3, ""),
+                            domain="bass"),
+                       Note(duration="q",
+                            pitch=("d", 3, ""),
+                            domain="bass"),
+                       Note(duration="q",
+                            pitch=("d", 3, ""),
+                            domain="bass"),
+                       Note(duration="q",
+                            pitch=("e", 3, ""),
+                            domain="bass"),
+                       Barline()]
+    def t2(): return [Note(duration="q",
+                           pitch=("f", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("f", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("f", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("f", 3, ""),
+                           domain="bass"),
+                      Barline()]
+    def t3(): return [Note(duration="q",
+                           pitch=("e", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("d", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("e", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("f", 3, ""),
+                           domain="bass"),
+                      Barline()
+                      ]
+    def t4(): return [Note(duration="h",
+                           pitch=("d", 3, ""),
+                           domain="bass"),
+                      Note(duration="h",
+                           pitch=("d", 3, ""),
+                           domain="bass"),
+                      Barline()]
+    def t5(): return [Note(duration="q",
+                           pitch=("f", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("f", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("f", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("g", 3, ""),
+                           domain="bass"),
+                      Barline()]
+    def t6(): return [Note(duration="q",
+                           pitch=("a", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("a", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("a", 3, ""),
+                           domain="bass"),
+                      Note(duration="q",
+                           pitch=("a", 3, ""),
+                           domain="bass"),
+                      Barline()]
+    def t7(): return [        Note(duration="q",
              pitch=("g", 3, ""),
              domain="bass"),
         Note(duration="q",
@@ -580,92 +575,92 @@ if __name__ == "__main__":
         Note(duration="q",
              pitch=("a", 3, ""),
              domain="bass"),
-        Barline(),
-        Note(duration="h",
+        Barline()]
+    def t8(): return [    Note(duration="h",
              pitch=("f", 3, ""),
              domain="bass"),
         Note(duration="h",
+             pitch=("f", 3, ""),
+             domain="bass"),
+        Barline()]
+    def t9(): return [        Note(duration="q",
+             pitch=("a", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("a", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("a", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("a", 3, ""),
+             domain="bass"),
+        Barline()]
+    def t10(): return [
+        Note(duration="q",
+             pitch=("b", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("b", 3, ""),
+             domain="bass"),
+        Note(duration="h",
+             pitch=("b", 3, ""),
+             domain="bass"),
+        Barline()]
+    def t11(): return [        Note(duration="q",
+             pitch=("g", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("g", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("g", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("b", 3, ""),
+             domain="bass"),
+        Barline()
+]
+    def t12(): return [        Note(duration="q",
+             pitch=("a", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("a", 3, ""),
+             domain="bass"),
+        Note(duration="h",
+             pitch=("a", 3, ""),
+             domain="bass"),
+        Barline()
+]
+    def t13(): return [        Note(duration="q",
+             pitch=("d", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("d", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("d", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("e", 3, ""),
+             domain="bass"),
+        Barline()
+]
+    def t14(): return [        Note(duration="q",
+             pitch=("f", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("f", 3, ""),
+             domain="bass"),
+        Note(duration="q",
+             pitch=("f", 3, ""),
+             domain="bass"),
+        Note(duration="q",
              pitch=("f", 3, ""),
              domain="bass"),
         Barline()
-    ]
-    last_8_bars = [
-        Clef(pitch=("f", 3, "")),
-        KeySig(scale="dmaj", domain="bass"),
-        # last 8 bars
-        Note(duration="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="q",
-             pitch=("b", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("b", 3, ""),
-             domain="bass"),
-        Note(duration="h",
-             pitch=("b", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="q",
-             pitch=("g", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("g", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("g", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("b", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Note(duration="h",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="q",
-             pitch=("d", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("d", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("d", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("e", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Barline(),
-        Note(duration="q",
+]
+    def t15(): return [        Note(duration="q",
              pitch=("e", 3, ""),
              domain="bass"),
         Note(duration="q",
@@ -677,22 +672,69 @@ if __name__ == "__main__":
         Note(duration="q",
              pitch=("f", 3, ""),
              domain="bass"),
-        Barline(),
-        Note(duration="h",
+        Barline()
+]
+    def t16(): return [        Note(duration="h",
              pitch=("d", 3, ""),
              domain="bass"),
         Note(duration="h",
              pitch=("d", 3, ""),
              domain="bass"),
         FinalBarline()
-    ]
-    staff1 = Staff(content=first_8_bars,
+]
+    
+    # oneliner
+    one = Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5()+t6()+t7()+t8()+t9()+t10()+t11()+t12()+t13()+t14()+t15()+t16(),
+               width=mm_to_px(270),
+               x=20,
+               y=60
+                )
+    two1 = Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5()+t6()+t7()+t8(),
                    width=mm_to_px(270),
                    x=20,
-                   y=60)
-    staff2 = Staff(content=last_8_bars,
+                   y=one.y + DESIRED_STAFF_HEIGHT_IN_PX * 3)
+    two2 = Staff(content=[_clef(),_keysig()]+t9()+t10()+t11()+t12()+t13()+t14()+t15()+t16(),
                    width=mm_to_px(270),
                    x=20,
-                   y=staff1.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                   y=two1.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
                    )
-    render(staff1, staff2, path="/tmp/test.svg")
+    three1=Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5(),
+                 width=mm_to_px(270),
+                 x=20,
+                 y=two2.y + DESIRED_STAFF_HEIGHT_IN_PX * 3
+                 )
+    three2=Staff(content=[_clef(),_keysig()]+t6()+t7()+t8()+t9()+t10(),
+                 width=mm_to_px(270),
+                 x=20,
+                 y=three1.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                 )
+    three3=Staff(content=[_clef(),_keysig()]+t11()+t12()+t13()+t14()+t15()+t16(),
+                 width=mm_to_px(270),
+                 x=20,
+                 y=three2.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                 )
+    # 4
+    four1=Staff(content=[_clef(),_keysig(), _timesig()]+t1()+t2()+t3()+t4(),
+                 width=mm_to_px(270),
+                 x=20,
+                 y=three3.y + DESIRED_STAFF_HEIGHT_IN_PX * 3
+                 )
+    four2=Staff(content=[_clef(),_keysig()]+t5()+t6()+t7()+t8(),
+                 width=mm_to_px(270),
+                 x=20,
+                 y=four1.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                 )
+    four3=Staff(content=[_clef(),_keysig()]+t9()+t10()+t11()+t12(),
+                 width=mm_to_px(270),
+                 x=20,
+                 y=four2.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                 )
+    four4=Staff(content=[_clef(),_keysig()]+t13()+t14()+t15()+t16(),
+                 width=mm_to_px(270),
+                 x=20,
+                 y=four3.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                 )
+    render(one, two1, two2,
+           three1, three2, three3,
+           four1,four2,four3,four4,
+           path="/tmp/test.svg")

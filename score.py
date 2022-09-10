@@ -41,7 +41,7 @@ class _Pitch:
 
 
 class StaffLines(VForm):
-    THICKNESS = 1
+    THICKNESS = 1.6
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     
@@ -119,9 +119,9 @@ class Stem(VLineSeg):
         # See Gould page 14 (Stem Length)
         self.length = DESIRED_STAFF_SPACE_IN_PX * 3.5
         # According to Gould (p. 13, Stems) stems are thinner than
-        # staff lines, but I don't like it!
-        self.thickness = StaffLines.THICKNESS
-        self.endxr = self.endyr = 2
+        # staff lines, but I sorta don't like it!
+        self.thickness = StaffLines.THICKNESS * .9
+        self.endxr = self.endyr = 1.35
 
 class OpenBeam(E.HLineSeg):
     def __init__(self, **kwargs):
