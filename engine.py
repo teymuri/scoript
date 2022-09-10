@@ -519,22 +519,16 @@ class _View(_Canvas):
         return self._bbox()[2]
 
     @property
-    def bottom(self): return self._bbox()[3]
+    def bottom(self):
+        return self._bbox()[3]
     
     @property
     def width(self):
         return self.right - self.left
 
-    @width.setter
-    def width(self, new):
-        if not self._width_locked:
-            self._right = self.left + new
-            self._width = new
-            for anc in reversed(self.ancestors):
-                anc.refresh_horizontals()
-
     @property
-    def height(self): return self.bottom - self.top
+    def height(self):
+        return self.bottom - self.top
 
     # Y setters
     @top.setter
