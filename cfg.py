@@ -1,3 +1,8 @@
+"""This file contains global names which should be modifiable from
+every where!
+
+"""
+
 CANVAS_VISIBLE = True
 ORIGIN_VISIBLE = True
 

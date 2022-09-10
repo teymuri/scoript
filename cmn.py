@@ -12,16 +12,8 @@ from engine import (RuleTable, render, HForm, mm_to_px, HLineSeg,
                     DESIRED_STAFF_SPACE_IN_PX, Char, CMN, VLineSeg,
                     DESIRED_STAFF_HEIGHT_IN_PX)
 from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline)
-
-
-"""
-This file contains rules for engraving Common Music Notation.
-"""
-
 from random import randint, choice
-# from engine import DESIRED_STAFF_SPACE_IN_PX, Char, HForm, CMN, VLineSeg
 import score as S
-# from score import Note, Clef, SimpleTimeSig, StaffLines, Barline
 import copy 
 
 
@@ -345,15 +337,9 @@ def is_final_barline(obj):
     return isinstance(obj, FinalBarline)
 
 def place_final_barline(obj):
-    obj.x = obj.direct_older_sibling().right
-    # obj.thin.x = obj.direct_older_sibling().right
-    obj.y = obj.current_ref_glyph_top() - StaffLines.THICKNESS * .5
-    # The thin barline is placed 1/2 staff spaces before the thick one
-    # (Gould, p.39)
-    obj.thick.x = obj.x + DESIRED_STAFF_SPACE_IN_PX * .5
-    obj.thick.x_locked =True
-    # obj.extend_content(obj.thin, obj.thick)
-    
+    obj.thin.y = obj.current_ref_glyph_top() - StaffLines.THICKNESS * .5
+    obj.thick.y = obj.current_ref_glyph_top() - StaffLines.THICKNESS * .5
+
     
 # S.E.CMN.add(skew, isline, "SKEW stave")
 # S.E.CMN.unsafeadd(skew, isline, "SKEW stave")
@@ -401,12 +387,9 @@ S.E.CMN.unsafeadd(set_stem_line, isnote, "setting stems...",)
 S.E.CMN.unsafeadd(set_clef_char, isclef, "Make clefs")
 
 CMN.unsafeadd(set_barline_char, lambda obj: is_barline(obj), "placing barlines")
-CMN.unsafeadd(place_final_barline,is_final_barline,
+CMN.unsafeadd(place_final_barline,
+              is_final_barline,
               "placing final barline...")
-# S.E.CMN.unsafeadd(punctsys,
-#                   # isline,
-#                   lambda x: isinstance(x, HForm),
-#                   "Punctuate",)
 
 CMN.unsafeadd(horizontal_spacing,
               lambda x: isinstance(x, Staff),
@@ -418,7 +401,9 @@ CMN.unsafeadd(StaffLines.make,
               is_simple_timesig(obj) or \
               is_accidental(obj) or \
               is_keysig(obj) or \
-              is_barline(obj) and not obj.is_last_child(),
+              is_barline(obj) and not obj.is_last_child() or \
+              is_final_barline(obj)
+              ,
               "Draws stave ontop/behind(?)")
 
 
@@ -698,7 +683,8 @@ if __name__ == "__main__":
              domain="bass"),
         Note(duration="h",
              pitch=("d", 3, ""),
-             domain="bass")
+             domain="bass"),
+        FinalBarline()
     ]
     staff1 = Staff(content=first_8_bars,
                    width=mm_to_px(270),
@@ -707,5 +693,6 @@ if __name__ == "__main__":
     staff2 = Staff(content=last_8_bars,
                    width=mm_to_px(270),
                    x=20,
-                   y=staff1.y + DESIRED_STAFF_HEIGHT_IN_PX * 2)
+                   y=staff1.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                   )
     render(staff1, staff2, path="/tmp/test.svg")

@@ -82,16 +82,19 @@ class Barline(SForm):
 class FinalBarline(HForm):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.thick = VLineSeg(
-            length=self.REF_GLYPH_HEIGHT + StaffLines.THICKNESS,
-            # The thick final line is of beam thickness (Gould, p. 39).
-            thickness=3         # ???
-        )
         self.thin = VLineSeg(
             length=self.REF_GLYPH_HEIGHT + StaffLines.THICKNESS,
             thickness=Barline.THICKNESS
         )
-        self.extend_content(self.thin, self.thick)
+        # The thin barline is placed 1/2 staff spaces before the thick one
+        # (Gould, p.39)
+        self.space = SForm(width=DESIRED_STAFF_SPACE_IN_PX * 0.5)
+        self.thick = VLineSeg(
+            length=self.REF_GLYPH_HEIGHT + StaffLines.THICKNESS,
+            # The thick final line is of beam thickness (Gould, p. 39).
+            thickness=3         # should be decided, don't have beams yet!
+        )
+        self.extend_content(self.thin, self.space, self.thick)
         
 class KeySig(HForm):
     

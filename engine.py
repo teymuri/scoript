@@ -474,6 +474,7 @@ class _View(_Canvas):
     be observed on its own. This is in contrast to a form which is a
     container for other objects and can not be observed on it's own
     (you can see it's canvas, but not the form itself!).
+    Note that a view's ...
     Examples for views are characters and lines.
     """
     def __init__(self, color=None, opacity=None, visible=True, **kwargs):
@@ -501,6 +502,7 @@ class _View(_Canvas):
     @property
     def left(self):
         return self._bbox()[0]
+    
     # X Setters; as these set the x, they have any effect only when x is unlocked.
     @left.setter
     def left(self, new):
