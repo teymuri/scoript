@@ -22,3 +22,6 @@ When you move an object's **y coordinate**
 When moving an object's **x coordinate**
 - **incrementing** (+) is to the **right**
 - **decrementing** (-) is to the **left**
+
+## API's Pitfalls (just for the record, some common mistakes I did while working with the API)
+- When creating forms (e.g. a horizontal form), it's _origin_ (xy coord) is placed in the _middle_ of it's height. Moving the y for instance, of course moves the top and bottom of the whole form as well, which can end with wrong results if you set y by somehow referencing it's top/bottom. I did this mistake while replacing the hform of final bar in a rule: `obj.y = obj.current_ref_glyph_top() - StaffLines.THICKNESS * 0.5` in order to place the obj's (`FinalBarline`) thin and thick at once. This resulted in a longer hform.
