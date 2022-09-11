@@ -27,3 +27,9 @@ CHLAPIK_STAFF_SPACES_IN_MM = {
 
 # This factor should be used to scale all objects globally
 GLOBAL_SCALE_FACTOR = 1.0
+
+# duration-space proportions (Gould, p. 39)
+DUR_SPACE_PROP = {
+    "w":7, "h": 5, "q": 3.5,
+    "e": 2.5, "s": 2
+}

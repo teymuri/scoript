@@ -18,7 +18,7 @@ import copy
 
 
 
-#cfg.CANVAS_VISIBLE = cfg.ORIGIN_VISIBLE = False
+cfg.CANVAS_VISIBLE = cfg.ORIGIN_VISIBLE = False
 
 def _treble_pitch_offset_from_staff_bottom(obj):
     return obj.current_ref_glyph_bottom() + {
@@ -156,16 +156,11 @@ def find_ref_dur(dur_counts):
     """
     return list(sorted(dur_counts, key=lambda lst: lst[0]))[0][1]
 
-# from Gould page 39
-DURS_SPACE_PROPORTION = {
-    "w":7, "h": 5, "q": 3.5,"8":3.5, "e": 2.5, "s": 2
-}
-
 def _dur_ref_ratio(dur, ref_dur):
     """Returns the ratio of the duration's space proportion to
     the reference duration's space proportion.
     """
-    return DURS_SPACE_PROPORTION[dur] / DURS_SPACE_PROPORTION[ref_dur]
+    return cfg.DUR_SPACE_PROP[dur] / cfg.DUR_SPACE_PROP[ref_dur]
     
 def compute_perf_punct(clocks, w):
     # notes=list(filter(lambda x:isinstance(x, Note), clocks))
@@ -190,7 +185,7 @@ def right_guard(obj):
             S.Accidental: 2,
             S.SimpleTimeSig: 0}[type(obj)]
 
-RIGHT_MARGIN = {
+RIGHT_PADDING = {
     KeySig: DESIRED_STAFF_SPACE_IN_PX,
     Accidental: DESIRED_STAFF_SPACE_IN_PX,
     Clef: DESIRED_STAFF_SPACE_IN_PX,
@@ -203,52 +198,52 @@ def first_clock_idx(l):
         if isinstance(x, S.Clock):
             return i
 
-def durs_to_count_dict(valued_objs_list) -> dict[str, int]:
+def _map_durs_to_count(valued_objs_list) -> dict[str, int]:
     durs_list = [obj.duration for obj in valued_objs_list]
     return {dur: durs_list.count(dur) for dur in set(durs_list)}
-    # return [(durs_list.count(dur), dur) for dur in set(durs_list)]
 
 # Note that durations MUST BE strings!
 def _find_ref_dur(durs_to_count: dict[str, int]) -> str:
+    """Returns the duration with the heighest number of appearances."""
     return max(durs_to_count, key=durs_to_count.get)
 
     
 def horizontal_spacing(staff):
-    # breakpoint()
-    # get sum of all non-valued character's width of the staff
-    non_valued_objs = [x for x in staff.content if not isinstance(x, Note)]
-    # non_valued_objs_space = sum([x.width + RIGHT_MARGIN[type(x)] for x in non_valued_objs])
-    non_valued_objs_space = 0
-    for x in non_valued_objs:
-        non_valued_objs_space += x.width
+    # get sum of all non-timed character's width of the staff
+    non_time_objs = [x for x in staff.content if not isinstance(x, Note)]
+    # non_time_objs_space = sum([x.width + RIGHT_PADDING[type(x)] for x in non_time_objs])
+    non_time_objs_space = 0
+    for x in non_time_objs:
+        non_time_objs_space += x.width
         if not (isinstance(x, (FinalBarline, Barline)) and x.is_last_child()):
-            non_valued_objs_space += RIGHT_MARGIN[type(x)]
+            non_time_objs_space += RIGHT_PADDING[type(x)]
     # get the remaining space for valued objs
-    remain_space = staff.width - non_valued_objs_space
-    # compute ideal widths for notes ()
-    valued_objs = [x for x in staff.content if isinstance(x, Note)]
-    durs_to_count = durs_to_count_dict(valued_objs)
+    rem_space = staff.width - non_time_objs_space
+    # compute ideal widths for objs with durations (notes and rests and chords)
+    time_objs = [x for x in staff.content if isinstance(x, Note)]
+    durs_to_count: dict = _map_durs_to_count(time_objs)
     ref_dur: str = _find_ref_dur(durs_to_count)
+    # Wieviele red_durs könnten wir insgesamt haben?
     ref_dur_count = sum([v * _dur_ref_ratio(k, ref_dur) for k, v in durs_to_count.items()])
     # ideal width for the reference duration
-    ref_dur_width = remain_space / ref_dur_count
-    valued_objs_space: list = [(ref_dur_width * _dur_ref_ratio(obj.duration, ref_dur) - obj.width) for obj in valued_objs]
+    ref_dur_width = rem_space / ref_dur_count
+    time_objs_space: list = [(ref_dur_width * _dur_ref_ratio(obj.duration, ref_dur) - obj.width) for obj in time_objs]
     if all([isinstance(x, Note) for x in staff.content]):
-        for obj, width in zip(staff.content, valued_objs_space):
+        for obj, width in zip(staff.content, time_objs_space):
             obj.width += width
             obj._width_locked = True
     else:
         valued_obj_idx = 0
         for obj in staff.content:
             if isinstance(obj, Note):
-                obj.width += valued_objs_space[valued_obj_idx]
+                obj.width += time_objs_space[valued_obj_idx]
                 valued_obj_idx += 1
                 obj._width_locked = True
             else:
                 # A barline at the end of the staff doesn't need it's
                 # right margin.
                 if not (isinstance(obj, (FinalBarline, Barline)) and obj.is_last_child()):
-                    obj.width += RIGHT_MARGIN[type(obj)]
+                    obj.width += RIGHT_PADDING[type(obj)]
     
 def punctsys(h):
     # print("---punct----")
@@ -734,7 +729,12 @@ if __name__ == "__main__":
                  x=20,
                  y=four3.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
                  )
+    
     render(one, two1, two2,
            three1, three2, three3,
            four1,four2,four3,four4,
            path="/tmp/test.svg")
+    
+    # render(VLineSeg(length=10, thickness=10,x=0,y=0,visible=0),
+    #        # HForm(width=10, x=0,y=0,height=10),
+    #        path="/tmp/test.svg")
