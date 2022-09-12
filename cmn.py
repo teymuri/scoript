@@ -9,8 +9,7 @@ if SMT_DIR not in sys.path:
 import random
 import cfg
 from engine import (RuleTable, render, HForm, mm_to_px, HLineSeg,
-                    DESIRED_STAFF_SPACE_IN_PX, Char, CMN, VLineSeg,
-                    DESIRED_STAFF_HEIGHT_IN_PX)
+                    Char, CMN, VLineSeg)
 from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline)
 from random import randint, choice
 import score as S
@@ -24,13 +23,13 @@ def _treble_pitch_offset_from_staff_bottom(obj):
     return obj.current_ref_glyph_bottom() + {
         "c": 1, "d": 0.5, "e": 0, "f": -0.5,
         "g": -1, "a": -1.5, "b": -2
-    }[obj.pitch.name] * DESIRED_STAFF_SPACE_IN_PX
+    }[obj.pitch.name] * cfg.DESIRED_STAFF_SPACE_IN_PX
 
 def _bass_pitch_offset_from_staff_bottom(obj):
     return obj.current_ref_glyph_bottom() + {
         "b": -1,
         "a": -.5, "g": 0, "f": 0.5, "e": 1, "d": 1.5, "c": 2
-    }[obj.pitch.name] * DESIRED_STAFF_SPACE_IN_PX
+    }[obj.pitch.name] * cfg.DESIRED_STAFF_SPACE_IN_PX
     
 def _pitch_vertical_pos(obj):
     """The pitch object is a note or an accidental. NOTE: all must
@@ -44,7 +43,7 @@ def _pitch_vertical_pos(obj):
     i.e. the middle stave line) to be the bottom edge of the SForm
     (_abstract_staff_height_bottom) + 1 stave space to get C4, half
     stave space to get D4, 0 stave spaces to get the E4, half stave
-    space towards top of page to get F4 (-0.5 * DESIRED_STAFF_SPACE_IN_PX, topwards
+    space towards top of page to get F4 (-0.5 * cfg.DESIRED_STAFF_SPACE_IN_PX, topwards
     our y coordinate is moving negative, downwards positive) etc. The
     rest is to replace the result of aforementioned calculations by a
     certian amount (offset_by_oct below) to transpose to other
@@ -143,9 +142,9 @@ def set_clef_char(clefobj):
     clefobj.char = Char(
         name={"g":"clefs.G","f":"clefs.F"}[clefobj.pitch.name])
     if clefobj.pitch.name == "g":
-        clefobj.char.y = clefobj.current_ref_glyph_bottom() - DESIRED_STAFF_SPACE_IN_PX
+        clefobj.char.y = clefobj.current_ref_glyph_bottom() - cfg.DESIRED_STAFF_SPACE_IN_PX
     elif clefobj.pitch.name == "f":
-        clefobj.char.y = clefobj.current_ref_glyph_top() + DESIRED_STAFF_SPACE_IN_PX
+        clefobj.char.y = clefobj.current_ref_glyph_top() + cfg.DESIRED_STAFF_SPACE_IN_PX
 
 
 
@@ -186,11 +185,11 @@ def right_guard(obj):
             S.SimpleTimeSig: 0}[type(obj)]
 
 RIGHT_PADDING = {
-    KeySig: DESIRED_STAFF_SPACE_IN_PX,
-    Accidental: DESIRED_STAFF_SPACE_IN_PX,
-    Clef: DESIRED_STAFF_SPACE_IN_PX,
-    Barline: DESIRED_STAFF_SPACE_IN_PX,
-    SimpleTimeSig: DESIRED_STAFF_SPACE_IN_PX
+    KeySig: cfg.DESIRED_STAFF_SPACE_IN_PX,
+    Accidental: cfg.DESIRED_STAFF_SPACE_IN_PX,
+    Clef: cfg.DESIRED_STAFF_SPACE_IN_PX,
+    Barline: cfg.DESIRED_STAFF_SPACE_IN_PX,
+    SimpleTimeSig: cfg.DESIRED_STAFF_SPACE_IN_PX
 }
 
 def first_clock_idx(l):
@@ -687,47 +686,47 @@ if __name__ == "__main__":
     two1 = Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5()+t6()+t7()+t8(),
                    width=mm_to_px(270),
                    x=20,
-                   y=one.y + DESIRED_STAFF_HEIGHT_IN_PX * 3)
+                   y=one.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 3)
     two2 = Staff(content=[_clef(),_keysig()]+t9()+t10()+t11()+t12()+t13()+t14()+t15()+t16(),
                    width=mm_to_px(270),
                    x=20,
-                   y=two1.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                   y=two1.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
                    )
     three1=Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5(),
                  width=mm_to_px(270),
                  x=20,
-                 y=two2.y + DESIRED_STAFF_HEIGHT_IN_PX * 3
+                 y=two2.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 3
                  )
     three2=Staff(content=[_clef(),_keysig()]+t6()+t7()+t8()+t9()+t10(),
                  width=mm_to_px(270),
                  x=20,
-                 y=three1.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                 y=three1.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
                  )
     three3=Staff(content=[_clef(),_keysig()]+t11()+t12()+t13()+t14()+t15()+t16(),
                  width=mm_to_px(270),
                  x=20,
-                 y=three2.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                 y=three2.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
                  )
     # 4
     four1=Staff(content=[_clef(),_keysig(), _timesig()]+t1()+t2()+t3()+t4(),
                  width=mm_to_px(270),
                  x=20,
-                 y=three3.y + DESIRED_STAFF_HEIGHT_IN_PX * 3
+                 y=three3.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 3
                  )
     four2=Staff(content=[_clef(),_keysig()]+t5()+t6()+t7()+t8(),
                  width=mm_to_px(270),
                  x=20,
-                 y=four1.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                 y=four1.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
                  )
     four3=Staff(content=[_clef(),_keysig()]+t9()+t10()+t11()+t12(),
                  width=mm_to_px(270),
                  x=20,
-                 y=four2.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                 y=four2.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
                  )
     four4=Staff(content=[_clef(),_keysig()]+t13()+t14()+t15()+t16(),
                  width=mm_to_px(270),
                  x=20,
-                 y=four3.y + DESIRED_STAFF_HEIGHT_IN_PX * 2
+                 y=four3.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
                  )
     
     render(one, two1, two2,

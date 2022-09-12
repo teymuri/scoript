@@ -6,7 +6,8 @@ Conveniece for creating score objects
 
 
 import engine as E
-from engine import VLineSeg, HLineSeg, DESIRED_STAFF_SPACE_IN_PX, SForm, HForm, VForm, Char
+import cfg
+from engine import VLineSeg, HLineSeg, SForm, HForm, VForm, Char
 
 
 
@@ -48,7 +49,7 @@ class StaffLines(VForm):
     @staticmethod               # static because it's going to be used in rules
     def make(obj):
         for i in range(5):
-            y = i * DESIRED_STAFF_SPACE_IN_PX + obj.current_ref_glyph_top()
+            y = i * cfg.DESIRED_STAFF_SPACE_IN_PX + obj.current_ref_glyph_top()
             line = HLineSeg(length=obj.width,
                             thickness=StaffLines.THICKNESS,
                             y=y,
@@ -88,7 +89,7 @@ class FinalBarline(HForm):
         )
         # The thin barline is placed 1/2 staff spaces before the thick one
         # (Gould, p.39)
-        self.space = SForm(width=DESIRED_STAFF_SPACE_IN_PX * 0.5)
+        self.space = SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX * 0.5)
         self.thick = VLineSeg(
             length=self.REF_GLYPH_HEIGHT + StaffLines.THICKNESS,
             # The thick final line is of beam thickness (Gould, p. 39).
@@ -117,7 +118,7 @@ class Stem(VLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # See Gould page 14 (Stem Length)
-        self.length = DESIRED_STAFF_SPACE_IN_PX * 3.5
+        self.length = cfg.DESIRED_STAFF_SPACE_IN_PX * 3.5
         # According to Gould (p. 13, Stems) stems are thinner than
         # staff lines, but I sorta don't like it!
         self.thickness = StaffLines.THICKNESS * .9

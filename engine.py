@@ -81,6 +81,18 @@ def get_glyph(name, font):
 # current_font = "Haydn"
 
 
+# Gould, page 483
+GOULD_STAFF_HEIGHTS_IN_MM = {
+    0: 9.2, 1: 7.9, 2: 7.4, 3: 7.0,
+    4: 6.5, 5: 6.0, 6: 5.5, 7: 4.8,
+    8: 3.7
+}
+
+# Chlapik, page 32
+CHLAPIK_STAFF_SPACES_IN_MM = {
+    2: 1.88, 3: 1.755, 4: 1.6,
+    5: 1.532, 6: 1.4, 7: 1.19, 8: 1.02
+}
 
 
 def mm_to_px(mm):
@@ -90,25 +102,23 @@ def mm_to_px(mm):
     return mm * 3.7795275591
 
 
-DESIRED_STAFF_HEIGHT_IN_PX = mm_to_px(cfg.GOULD_STAFF_HEIGHTS_IN_MM[0])
-DESIRED_STAFF_SPACE_IN_PX = mm_to_px(cfg.GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
-
+def n_staff_spaces(n):
+    """Returns the specified amount of staff spaces (in pixels)."""
+    return n * cfg.DESIRED_STAFF_SPACE_IN_PX
 
 def scale_by_staff_height_factor(r):
     """Scales the number r by the chosen staff's height. The staff
     height factor is the ratio between the desired height of our staff
-    (the global DESIRED_STAFF_HEIGHT_IN_PX) and the height of the chosen reference
+    (the global cfg.DESIRED_STAFF_HEIGHT_IN_PX) and the height of the chosen reference
     glyph (which is by default the alto clef, as described by Chlapik
     on page 33). The global scale factor is present to let us control
     scaling globally for all objects.
     """
-    raw_staff_height = get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, "haydn-11")["height"]
-    staff_height_factor = DESIRED_STAFF_HEIGHT_IN_PX / raw_staff_height
+    raw_staff_height = get_glyph(cfg.STAFF_HEIGHT_REF_GLYPH, "haydn-11")["height"]
+    staff_height_factor = cfg.DESIRED_STAFF_HEIGHT_IN_PX / raw_staff_height
     return r * cfg.GLOBAL_SCALE_FACTOR * staff_height_factor
 
 
-_LEFT_MARGIN = mm_to_px(36)
-_TOP_MARGIN = mm_to_px(56)
 
 
 
@@ -608,7 +618,7 @@ class _Form(_Canvas, _Font):
         # The following 3 attributes carry information about the
         # height of a Form object. Each Form is created with a default
         # (imaginary) height, which is equal to the height of the
-        # chosen staff (DESIRED_STAFF_HEIGHT_IN_PX). This imaginary height
+        # chosen staff (cfg.DESIRED_STAFF_HEIGHT_IN_PX). This imaginary height
         # information can be useful in various contexts, e.g. where
         # reference to the height of the underlying staff is
         # needed. These values are relative to the position of the
@@ -616,21 +626,21 @@ class _Form(_Canvas, _Font):
         # should be considered read-only and are updated automatically
         # by the parent Form upon his replacement. Unlike this default
         # height setup, a Form has no pre-existing width (i.e. width = 0 pixels).
-        self._abstract_staff_height_top = self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
-        self._abstract_staff_height_bottom = self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
-        self._abstract_staff_height = scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"])
+        self._abstract_staff_height_top = self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REF_GLYPH, self.font)["top"])
+        self._abstract_staff_height_bottom = self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REF_GLYPH, self.font)["bottom"])
+        self._abstract_staff_height = scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REF_GLYPH, self.font)["height"])
         for c in self.content:
             c.x = self.x
             c.y = self.y            
         #
         self.REF_GLYPH_HEIGHT = scale_by_staff_height_factor(
-            get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["height"]
+            get_glyph(cfg.STAFF_HEIGHT_REF_GLYPH, self.font)["height"]
         )
     def current_ref_glyph_top(self):
-        return self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["top"])
+        return self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REF_GLYPH, self.font)["top"])
 
     def current_ref_glyph_bottom(self):
-        return self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REFERENCE_GLYPH, self.font)["bottom"])
+        return self.y + scale_by_staff_height_factor(get_glyph(cfg.STAFF_HEIGHT_REF_GLYPH, self.font)["bottom"])
     
     def delcont(self, test):    # name: del_content_if
         for i, c in enumerate(self.content):
