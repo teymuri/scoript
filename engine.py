@@ -183,8 +183,11 @@ class RuleTable:
         # _ruletables.add(self)
         RuleTable.RULE_TABLES.add(self)
 
-    def make_rule(self, desc: str, hook, pred) -> dict:
-        return {"desc": desc, "hook": hook, "pred": pred, "applied": False}
+    def make_rule(self, hook, pred, desc) -> dict:
+        return {"desc": desc,
+                "hook": hook,
+                "pred": pred,
+                "applied": False}
     
     def pending_rules(self) -> list:       # this name is bullshit (not a bool)!!!
         """Returns a sorted list of only rules of this ruletable
@@ -211,8 +214,8 @@ class RuleTable:
             self._hook_registry.append(hhash)
             self._pred_registry.append(phash)
         
-    def unsafeadd(self, hook, pred, desc=""): # rename register
-        self.rules[self._order] = self.make_rule(desc, hook, pred)
+    def unsafeadd(self, hook, pred, desc=None): # rename register
+        self.rules[self._order] = self.make_rule(hook, pred, desc or hook.__name__)
         # next rule will be added at the next position, this order
         # decides when the rule should be applied.
         self._order +=1

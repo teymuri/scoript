@@ -10,7 +10,7 @@ import random
 import cfg
 from engine import (RuleTable, render, HForm, mm_to_px, HLineSeg,
                     Char, CMN, VLineSeg)
-from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline)
+from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline, _Time)
 from random import randint, choice
 import score as S
 import copy 
@@ -62,14 +62,14 @@ def _pitch_vertical_pos(obj):
     y = pos_on_staff + offset_by_oct
     return y
 
-def is_simple_timesig(x): return isinstance(x, S.SimpleTimeSig)
+def is_simple_timesig(x): return isinstance(x, SimpleTimeSig)
 def set_simple_timesig_chars(ts):
     """this is the ultimate, the one and the only guy putting
     together and punching time sigs"""
-    ts.num_char=S.E.Char({3: "three", 4:"four", 5:"five"}.get(ts.num, ".notdef"),
+    ts.num_char=Char({3: "three", 4:"four", 5:"five"}.get(ts.num, ".notdef"),
                            canvas_visible=False,
                            origin_visible=False)
-    ts.denom_char=S.E.Char({4: "four", 2:"two", 1: "one"}.get(ts.denom, ".notdef"),
+    ts.denom_char=Char({4: "four", 2:"two", 1: "one"}.get(ts.denom, ".notdef"),
                              canvas_visible=False,
                              origin_visible=False)
     # I'm shifting the 1 here because I know the font's properties?
@@ -117,18 +117,20 @@ def set_notehead_char(obj):
         "w": "noteheads.s0",
         "h": "noteheads.s1",
         "q": "noteheads.s2",
-    }[obj.duration])
+        "e": "noteheads.s2"
+    }[obj.dur])
     obj.head_punch.y = _pitch_vertical_pos(obj)
 
-def isnote(x): return isinstance(x,S.Note)
+def isnote(x): return isinstance(x, Note)
 
 
 
 def isstem(o): return isinstance(o, S.Stem)
 def set_stem_line(note):
-    if note.duration in ("q", "h"): # needs stem
+    if note.dur in ("q", "h"): # needs stem
         stem = Stem(x=note.x+.7,
-                    y=note.head_punch.y)
+                    y=note.head_punch.y,
+                    )
         note.stem_graver = stem
 
 
@@ -151,19 +153,19 @@ def set_clef_char(clefobj):
 ############################# punctuation
 
 def find_ref_dur(dur_counts):
-    """Returns the duration name with the largest number of occurrences.
+    """Returns the dur name with the largest number of occurrences.
     """
     return list(sorted(dur_counts, key=lambda lst: lst[0]))[0][1]
 
 def _dur_ref_ratio(dur, ref_dur):
-    """Returns the ratio of the duration's space proportion to
-    the reference duration's space proportion.
+    """Returns the ratio of the dur's space proportion to
+    the reference dur's space proportion.
     """
-    return cfg.DUR_SPACE_PROP[dur] / cfg.DUR_SPACE_PROP[ref_dur]
+    return cfg.DUR_SPACE_PROPS[dur] / cfg.DUR_SPACE_PROPS[ref_dur]
     
 def compute_perf_punct(clocks, w):
     # notes=list(filter(lambda x:isinstance(x, Note), clocks))
-    durs=list(map(lambda x:x.duration, clocks))
+    durs=list(map(lambda x:x.dur, clocks))
     dur_counts = []
     for d in set(durs):
         # dur_counts[durs.count(d)] =d
@@ -174,9 +176,9 @@ def compute_perf_punct(clocks, w):
     perfwidths = []
     for x in clocks:
         # a space is excluding the own width of the clock (it's own char width)
-        space = ((uw * _dur_ref_ratio(x.duration, udur)) - x.width)
+        space = ((uw * _dur_ref_ratio(x.dur, udur)) - x.width)
         perfwidths.append(space)
-        # x.width += ((uw * _dur_ref_ratio(udur, x.duration)) - x.width)
+        # x.width += ((uw * _dur_ref_ratio(udur, x.dur)) - x.width)
     return perfwidths
 
 def right_guard(obj):
@@ -184,10 +186,11 @@ def right_guard(obj):
             S.Accidental: 2,
             S.SimpleTimeSig: 0}[type(obj)]
 
-RIGHT_PADDING = {
+NON_TIME_OBJS_RIGHT_PADDING = {
     KeySig: cfg.DESIRED_STAFF_SPACE_IN_PX,
     Accidental: cfg.DESIRED_STAFF_SPACE_IN_PX,
     Clef: cfg.DESIRED_STAFF_SPACE_IN_PX,
+    # one space for the barline (Ross, p. 74)
     Barline: cfg.DESIRED_STAFF_SPACE_IN_PX,
     SimpleTimeSig: cfg.DESIRED_STAFF_SPACE_IN_PX
 }
@@ -198,51 +201,68 @@ def first_clock_idx(l):
             return i
 
 def _map_durs_to_count(valued_objs_list) -> dict[str, int]:
-    durs_list = [obj.duration for obj in valued_objs_list]
+    durs_list = [obj.dur for obj in valued_objs_list]
     return {dur: durs_list.count(dur) for dur in set(durs_list)}
 
 # Note that durations MUST BE strings!
 def _find_ref_dur(durs_to_count: dict[str, int]) -> str:
-    """Returns the duration with the heighest number of appearances."""
+    """Returns the dur with the heighest number of appearances."""
     return max(durs_to_count, key=durs_to_count.get)
 
-    
-def horizontal_spacing(staff):
-    # get sum of all non-timed character's width of the staff
-    non_time_objs = [x for x in staff.content if not isinstance(x, Note)]
-    # non_time_objs_space = sum([x.width + RIGHT_PADDING[type(x)] for x in non_time_objs])
-    non_time_objs_space = 0
-    for x in non_time_objs:
-        non_time_objs_space += x.width
-        if not (isinstance(x, (FinalBarline, Barline)) and x.is_last_child()):
-            non_time_objs_space += RIGHT_PADDING[type(x)]
-    # get the remaining space for valued objs
-    rem_space = staff.width - non_time_objs_space
-    # compute ideal widths for objs with durations (notes and rests and chords)
-    time_objs = [x for x in staff.content if isinstance(x, Note)]
-    durs_to_count: dict = _map_durs_to_count(time_objs)
-    ref_dur: str = _find_ref_dur(durs_to_count)
-    # Wieviele red_durs könnten wir insgesamt haben?
-    ref_dur_count = sum([v * _dur_ref_ratio(k, ref_dur) for k, v in durs_to_count.items()])
-    # ideal width for the reference duration
-    ref_dur_width = rem_space / ref_dur_count
-    time_objs_space: list = [(ref_dur_width * _dur_ref_ratio(obj.duration, ref_dur) - obj.width) for obj in time_objs]
+def time_obj_space_list(staff):
+    right_paddings = NON_TIME_OBJS_RIGHT_PADDING
+    while True:
+        # get sum of all non-timed character's width of the staff
+        non_time_objs = [x for x in staff.content if not _Time.is_time(x)]
+        non_time_objs_space = 0
+        for x in non_time_objs:
+            non_time_objs_space += x.width
+            if not (isinstance(x, (FinalBarline, Barline)) and x.is_last_child()):
+                non_time_objs_space += right_paddings[type(x)]
+        # get the remaining space for valued objs
+        time_objs_space = staff.width - non_time_objs_space
+        # compute ideal widths for objs with durations (notes and rests and chords)
+        time_objs = [x for x in staff.content if _Time.is_time(x)]
+        durs_to_count: dict = _map_durs_to_count(time_objs)
+        ref_dur: str = _find_ref_dur(durs_to_count)
+        # Wieviele red_durs könnten wir insgesamt haben?
+        ref_dur_count = sum([v * _dur_ref_ratio(k, ref_dur) for k, v in durs_to_count.items()])
+        # ideal width for the reference dur
+        # See Ross page 73
+        unit_of_space = time_objs_space / ref_dur_count
+        shortest_time_obj = _Time.shortest(time_objs)
+        shortest_time_obj_width = None
+        _time_obj_space_list = []
+        for obj in time_objs:
+            space = unit_of_space * _dur_ref_ratio(obj.dur, ref_dur) - obj.width
+            _time_obj_space_list.append(space)
+            if obj is shortest_time_obj:
+                shortest_time_obj_width = space
+        # momentan nehme ich an right paddding ist immer 1 staff space...
+        if shortest_time_obj_width >= right_paddings[sorted(right_paddings, key=right_paddings.get)[0]]:
+            return (_time_obj_space_list, right_paddings)
+        else:
+            # zieh 1 pixel ab
+            right_paddings = {_type: padding - 1 for _type, padding in right_paddings.items()}
+
+def imperfect_punctuation(staff):
+    _time_obj_space_list, right_paddings = time_obj_space_list(staff)
     if all([isinstance(x, Note) for x in staff.content]):
-        for obj, width in zip(staff.content, time_objs_space):
+        for obj, width in zip(staff.content, _time_obj_space_list):
             obj.width += width
             obj._width_locked = True
     else:
-        valued_obj_idx = 0
+        time_obj_idx = 0
         for obj in staff.content:
             if isinstance(obj, Note):
-                obj.width += time_objs_space[valued_obj_idx]
-                valued_obj_idx += 1
+                obj.width += _time_obj_space_list[time_obj_idx]
+                time_obj_idx += 1
                 obj._width_locked = True
             else:
                 # A barline at the end of the staff doesn't need it's
                 # right margin.
                 if not (isinstance(obj, (FinalBarline, Barline)) and obj.is_last_child()):
-                    obj.width += RIGHT_PADDING[type(obj)]
+                    obj.width += right_paddings[type(obj)]
     
 def punctsys(h):
     # print("---punct----")
@@ -293,7 +313,7 @@ def opachead(n): n.head_punch.opacity = .3
 
 
 def setbm(l):
-    o=[x for x in l.content if isnote(x) and x.duration in ("q","h")] #note mit openbeam
+    o=[x for x in l.content if isnote(x) and x.dur in ("q","h")] #note mit openbeam
     # c=[x for x in l.content if isnote(x) and x.close_beam][0]
     # d=c.stem_graver.right -o.stem_graver.left
     for a in o:
@@ -319,10 +339,10 @@ def is_barline(x): return isinstance(x, Barline)
 def set_barline_char(obj):
     # obj is a barline object
     obj.char = VLineSeg(length=obj._abstract_staff_height + StaffLines.THICKNESS,
-                        thickness=Barline.THICKNESS,
+                        thickness=Barline.THICKNESS + 1,
                         y=obj.current_ref_glyph_top() - StaffLines.THICKNESS * .5,
                         # a barline is normally used after a note or a rest
-                        x=obj.direct_older_sibling().right,
+                        x=obj.direct_older_sibling().right if obj.direct_older_sibling() else obj.parent().x,
                         canvas_visible=True,
                         canvas_opacity=0.1,
                         visible=True)
@@ -339,7 +359,7 @@ def place_final_barline(obj):
 # S.E.CMN.unsafeadd(skew, isline, "SKEW stave")
 
 def flag(note):
-    if note.duration != 1:
+    if note.dur != 1:
         # print(note.stem_graver.y)
         note.extend_content(S.E.Char(name="flags.d4",y=note.stem_graver.bottom,x=note.x+.5,
         origin_visible=1))
@@ -364,30 +384,29 @@ test
 # The single argument to rule hooks are every objects defined in your
 # score.
 CMN.unsafeadd(set_simple_timesig_chars,
-              is_simple_timesig,"Set Time...",)
+              is_simple_timesig)
 
-CMN.unsafeadd(set_notehead_char, noteandtreble, "make noteheads",)
+CMN.unsafeadd(set_notehead_char, noteandtreble,)
 # CMN.unsafeadd(notehead_vertical_pos, noteandtreble, "note vertical position")
 
-CMN.unsafeadd(set_keysig_char_list, is_keysig, "engraving keysig ...")
+CMN.unsafeadd(set_keysig_char_list, is_keysig)
 
 CMN.unsafeadd(set_accidental_char,
-              is_accidental,
-              "making accidental chars ...",)
+              is_accidental)
 
 
-S.E.CMN.unsafeadd(set_stem_line, isnote, "setting stems...",)
+S.E.CMN.unsafeadd(set_stem_line, isnote)
 
-S.E.CMN.unsafeadd(set_clef_char, isclef, "Make clefs")
+S.E.CMN.unsafeadd(set_clef_char, isclef)
 
-CMN.unsafeadd(set_barline_char, lambda obj: is_barline(obj), "placing barlines")
+CMN.unsafeadd(set_barline_char,
+              lambda obj: is_barline(obj))
+
 CMN.unsafeadd(place_final_barline,
-              is_final_barline,
-              "placing final barline...")
+              is_final_barline)
 
-CMN.unsafeadd(horizontal_spacing,
-              lambda x: isinstance(x, Staff),
-              "horizontal_spacing,")
+CMN.unsafeadd(imperfect_punctuation,
+              lambda x: isinstance(x, Staff))
 
 CMN.unsafeadd(StaffLines.make,
               lambda obj: isnote(obj) or \
@@ -396,9 +415,7 @@ CMN.unsafeadd(StaffLines.make,
               is_accidental(obj) or \
               is_keysig(obj) or \
               is_barline(obj) and not obj.is_last_child() or \
-              is_final_barline(obj)
-              ,
-              "Draws stave ontop/behind(?)")
+              is_final_barline(obj))
 
 
 if __name__ == "__main__":
@@ -429,50 +446,50 @@ if __name__ == "__main__":
     #     SimpleTimeSig(denom=4, canvas_visible=False, origin_visible=False),
     #     # a,
     #     Note(domain="treble",
-    #          duration="q",
+    #          dur="q",
     #          pitch=["f", 5]),
     #     # Accidental(pitch=("f", 5, "#")),
     #     Note(domain="treble",
-    #          duration="q",
+    #          dur="q",
     #          pitch=["f", 5]),
     #     # Accidental(pitch=("f", 5, "#")),
     #     Note(domain="treble",
-    #          duration="q",
+    #          dur="q",
     #          pitch=["f", 5]),
     #     # Accidental(pitch=("g", 5, "#")),
     #     Note(domain="treble",
-    #          duration="q",
+    #          dur="q",
     #          pitch=["g", 5]),
     #     Barline(),
     #     # Accidental(pitch=("a", 5, "#")),
     #     Note(domain="treble",
-    #          duration="h",
+    #          dur="h",
     #          pitch=["a", 5]),
     #     # Accidental(pitch=("g", 5, "#")),
     #     Note(domain="treble",
-    #          duration="h",
+    #          dur="h",
     #          pitch=["g", 5]),
     #     Barline(),
     #     # Accidental(pitch=("f", 5, "#")),
     #     Note(domain="treble",
-    #          duration="q",
+    #          dur="q",
     #          pitch=["f", 5]),
     #     # Accidental(pitch=("a", 5, "#")),
     #     Note(domain="treble",
-    #          duration="q",
+    #          dur="q",
     #          pitch=["a", 5]),
     #     # Accidental(pitch=("g", 5, "#")),
     #     Note(domain="treble",
-    #          duration="q",
+    #          dur="q",
     #          pitch=["g", 5]),
     #     # Accidental(pitch=("g", 5, "#")),
     #     Note(domain="treble",
-    #          duration="q",
+    #          dur="q",
     #          pitch=["g", 5]),
     #     Barline(),
     #     # Accidental(pitch=("c", 5, "#")),
     #     Note(domain="treble",
-    #          duration="w",
+    #          dur="w",
     #          pitch=["f", 5]),
     #     Barline()
     # ],
@@ -484,194 +501,194 @@ if __name__ == "__main__":
     def _keysig(): return KeySig(scale="dmaj", domain="bass")
     def _clef(): return Clef(pitch=("f", 3, ""))
     def _timesig(): return SimpleTimeSig()
-    def t1(): return [Note(duration="q",
+    def t1(): return [Note(dur="q",
                             pitch=("d", 3, ""),
                             domain="bass"),
-                       Note(duration="q",
+                       Note(dur="q",
                             pitch=("d", 3, ""),
                             domain="bass"),
-                       Note(duration="q",
+                       Note(dur="q",
                             pitch=("d", 3, ""),
                             domain="bass"),
-                       Note(duration="q",
+                       Note(dur="q",
                             pitch=("e", 3, ""),
                             domain="bass"),
                        Barline()]
-    def t2(): return [Note(duration="q",
+    def t2(): return [Note(dur="q",
                            pitch=("f", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("f", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("f", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("f", 3, ""),
                            domain="bass"),
                       Barline()]
-    def t3(): return [Note(duration="q",
+    def t3(): return [Note(dur="q",
                            pitch=("e", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("d", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("e", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("f", 3, ""),
                            domain="bass"),
                       Barline()
                       ]
-    def t4(): return [Note(duration="h",
+    def t4(): return [Note(dur="h",
                            pitch=("d", 3, ""),
                            domain="bass"),
-                      Note(duration="h",
+                      Note(dur="h",
                            pitch=("d", 3, ""),
                            domain="bass"),
                       Barline()]
-    def t5(): return [Note(duration="q",
+    def t5(): return [Note(dur="q",
                            pitch=("f", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("f", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("f", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("g", 3, ""),
                            domain="bass"),
                       Barline()]
-    def t6(): return [Note(duration="q",
+    def t6(): return [Note(dur="q",
                            pitch=("a", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("a", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("a", 3, ""),
                            domain="bass"),
-                      Note(duration="q",
+                      Note(dur="q",
                            pitch=("a", 3, ""),
                            domain="bass"),
                       Barline()]
-    def t7(): return [        Note(duration="q",
+    def t7(): return [        Note(dur="q",
              pitch=("g", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("f", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("g", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("a", 3, ""),
              domain="bass"),
         Barline()]
-    def t8(): return [    Note(duration="h",
+    def t8(): return [    Note(dur="h",
              pitch=("f", 3, ""),
              domain="bass"),
-        Note(duration="h",
+        Note(dur="h",
              pitch=("f", 3, ""),
              domain="bass"),
         Barline()]
-    def t9(): return [        Note(duration="q",
+    def t9(): return [        Note(dur="q",
              pitch=("a", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("a", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("a", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("a", 3, ""),
              domain="bass"),
         Barline()]
     def t10(): return [
-        Note(duration="q",
+        Note(dur="q",
              pitch=("b", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("b", 3, ""),
              domain="bass"),
-        Note(duration="h",
+        Note(dur="h",
              pitch=("b", 3, ""),
              domain="bass"),
         Barline()]
-    def t11(): return [        Note(duration="q",
+    def t11(): return [        Note(dur="q",
              pitch=("g", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("g", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("g", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("b", 3, ""),
              domain="bass"),
         Barline()
 ]
-    def t12(): return [        Note(duration="q",
+    def t12(): return [        Note(dur="q",
              pitch=("a", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("a", 3, ""),
              domain="bass"),
-        Note(duration="h",
+        Note(dur="h",
              pitch=("a", 3, ""),
              domain="bass"),
         Barline()
 ]
-    def t13(): return [        Note(duration="q",
+    def t13(): return [        Note(dur="q",
              pitch=("d", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("d", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("d", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("e", 3, ""),
              domain="bass"),
         Barline()
 ]
-    def t14(): return [        Note(duration="q",
+    def t14(): return [        Note(dur="q",
              pitch=("f", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("f", 3, ""),
              domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("f", 3, ""),
              domain="bass"),
-        Note(duration="q",
-             pitch=("f", 3, ""),
-             domain="bass"),
-        Barline()
-]
-    def t15(): return [        Note(duration="q",
-             pitch=("e", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("d", 3, ""),
-             domain="bass"),
-        Note(duration="q",
-             pitch=("e", 3, ""),
-             domain="bass"),
-        Note(duration="q",
+        Note(dur="q",
              pitch=("f", 3, ""),
              domain="bass"),
         Barline()
 ]
-    def t16(): return [        Note(duration="h",
+    def t15(): return [        Note(dur="q",
+             pitch=("e", 3, ""),
+             domain="bass"),
+        Note(dur="q",
              pitch=("d", 3, ""),
              domain="bass"),
-        Note(duration="h",
+        Note(dur="q",
+             pitch=("e", 3, ""),
+             domain="bass"),
+        Note(dur="q",
+             pitch=("f", 3, ""),
+             domain="bass"),
+        Barline()
+]
+    def t16(): return [        Note(dur="h",
+             pitch=("d", 3, ""),
+             domain="bass"),
+        Note(dur="h",
              pitch=("d", 3, ""),
              domain="bass"),
         FinalBarline()
@@ -729,11 +746,20 @@ if __name__ == "__main__":
                  y=four3.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
                  )
     
-    render(one, two1, two2,
+    render(one,
+           two1, two2,
            three1, three2, three3,
            four1,four2,four3,four4,
            path="/tmp/test.svg")
-    
-    # render(VLineSeg(length=10, thickness=10,x=0,y=0,visible=0),
-    #        # HForm(width=10, x=0,y=0,height=10),
+
+    # render(Staff(content=[
+    #     Note(pitch=("f", 5, ""), dur="q"),
+    #     Note(pitch=("f", 5, ""), dur="e"),
+    #     Accidental(pitch=("f", 5, "#")),
+    #     Note(pitch=("f", 5, ""), dur="e"),
+    #     Note(pitch=("f", 5, ""), dur="q"),
+    #     Note(pitch=("f", 5, ""), dur="q"),
+    #     Barline()
+    # ],
+    #              width=mm_to_px(100)),
     #        path="/tmp/test.svg")

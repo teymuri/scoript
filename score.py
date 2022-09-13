@@ -11,18 +11,32 @@ from engine import VLineSeg, HLineSeg, SForm, HForm, VForm, Char
 
 
 
-class Clock:
-    def __init__(self, duration=None):
-        self.duration = duration or 0.25
+class _Time:
+    ORDER = {
+        "s": 0, "e": 1, "q": 2,
+        "h": 3, "w": 4
+    }
+    def __init__(self, dur=None):
+        # durations are: "w", "h", "q", "e", "s"
+        self.dur = dur or "q"
+    @staticmethod
+    def shortest(time_objs_list):
+        return sorted(time_objs_list,
+                      key=lambda obj: _Time.ORDER[obj.dur])[0]
+    @staticmethod
+    def is_time(obj):
+        return isinstance(obj, _Time)
+
+
 
 def allclocks(form):
     """Returns True if form's content is made up of Clocks only."""
-    return all(map(lambda C: isinstance(C, Clock), form.content))
+    return all(map(lambda C: isinstance(C, _Time), form.content))
 
 def clock_chunks(content_list):
     indices = []
     for i in range(len(content_list)):
-        if isinstance(content_list[i], Clock):
+        if isinstance(content_list[i], _Time):
             indices.append(i)
     chunks = []
     for start, end in zip(indices[:-1], indices[1:]):
@@ -42,7 +56,7 @@ class _Pitch:
 
 
 class StaffLines(VForm):
-    THICKNESS = 1.6
+    THICKNESS = cfg.DESIRED_STAFF_SPACE_IN_PX * 0.17
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     
@@ -66,7 +80,7 @@ class Staff(HForm):
 
 class Barline(SForm):
     # Gould, page 38: The barline is thicker than a stave-line ...
-    THICKNESS = StaffLines.THICKNESS + .5
+    THICKNESS = StaffLines.THICKNESS + .1
     def __init__(self, type="single", **kwargs):
         # Types by Gould: single, double, final, repeat
         self.type = type
@@ -117,24 +131,31 @@ class KeySig(HForm):
 class Stem(VLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # See Gould page 14 (Stem Length)
+        # Die Länge der Notenhälse beträgt in der Regel 3
+        # Rastralzwischenräume (Chlapik p. 39).
+        # 3.5 spaces (Ross, p. 83)
         self.length = cfg.DESIRED_STAFF_SPACE_IN_PX * 3.5
-        # According to Gould (p. 13, Stems) stems are thinner than
-        # staff lines, but I sorta don't like it!
-        self.thickness = StaffLines.THICKNESS * .9
+        # Der Notenhals soll die gleiche
+        # Stärke haben wie das Liniensystem (Chlapik p. 39).
+        self.thickness = StaffLines.THICKNESS
         self.endxr = self.endyr = 1.35
 
 class OpenBeam(E.HLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class Note(SForm, Clock):
+class Note(SForm, _Time):
     def __init__(self, head_punch=None, stem_graver=None, obeam_graver=None, cbeam_graver=None,
-    duration=None, pitch=None, **kwargs):
-        Clock.__init__(self, duration)
-        # _Pitch.__init__(self, pitch)
-        self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])
-        E.SForm.__init__(self, **kwargs)
+    dur=None, pitch=None, **kwargs):
+        if "domain" not in kwargs:
+            kwargs["domain"] = "treble"
+        SForm.__init__(self, **kwargs)
+        _Time.__init__(self, dur)
+        if pitch:
+            self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])
+        else:
+            self.pitch = _Pitch(name="c", suffix="", octave=4)
+
         
         self._obeam_graver=obeam_graver
         self._cbeam_graver=cbeam_graver
@@ -174,6 +195,8 @@ class Note(SForm, Clock):
 
 class Accidental(SForm):
     def __init__(self, pitch=None, **kwargs):
+        if "domain" not in kwargs:
+            kwargs["domain"] = "treble"
         SForm.__init__(self, **kwargs)
         # self.pitch = pitch      # e.g. ("f", 5, "#")
         self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])

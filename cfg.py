@@ -23,7 +23,7 @@ UNDEFINED_GLYPH = ".notdef"
 GLOBAL_SCALE_FACTOR = 1.0
 
 # duration-space proportions (Gould, p. 39)
-DUR_SPACE_PROP = {
+DUR_SPACE_PROPS = {
     "w":7, "h": 5, "q": 3.5,
     "e": 2.5, "s": 2
 }
