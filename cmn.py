@@ -10,7 +10,7 @@ import random
 import cfg
 from engine import (RuleTable, render, HForm, mm_to_px, HLineSeg,
                     Char, CMN, VLineSeg)
-from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline, _Time)
+from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline, _Clock, is_last_barline_on_staff)
 from random import randint, choice
 import score as S
 import copy 
@@ -186,7 +186,7 @@ def right_guard(obj):
             S.Accidental: 2,
             S.SimpleTimeSig: 0}[type(obj)]
 
-NON_TIME_OBJS_RIGHT_PADDING = {
+NON_CLOCKED_RIGHT_PADDING = {
     KeySig: cfg.DESIRED_STAFF_SPACE_IN_PX,
     Accidental: cfg.DESIRED_STAFF_SPACE_IN_PX,
     Clef: cfg.DESIRED_STAFF_SPACE_IN_PX,
@@ -209,93 +209,66 @@ def _find_ref_dur(durs_to_count: dict[str, int]) -> str:
     """Returns the dur with the heighest number of appearances."""
     return max(durs_to_count, key=durs_to_count.get)
 
-def time_obj_space_list(staff):
-    right_paddings = NON_TIME_OBJS_RIGHT_PADDING
+def get_non_clocked_space(staff, right_padding_dict):
+    """Returns the sum of space """
+    objs = _Clock.get_non_time_objs(staff)
+    space = 0
+    for x in objs:
+        space += x.width
+        if not is_last_barline_on_staff(x):
+            space += right_padding_dict[type(x)]
+    return space
+
+def get_clocked_space_and_padding(staff, right_padding_dict):
+    """Returns a list"""
     while True:
-        # get sum of all non-timed character's width of the staff
-        non_time_objs = [x for x in staff.content if not _Time.is_time(x)]
-        non_time_objs_space = 0
-        for x in non_time_objs:
-            non_time_objs_space += x.width
-            if not (isinstance(x, (FinalBarline, Barline)) and x.is_last_child()):
-                non_time_objs_space += right_paddings[type(x)]
+        # get sum of all non-time objects width of the staff
+        non_clocked_space = get_non_clocked_space(staff, right_padding_dict)
         # get the remaining space for valued objs
-        time_objs_space = staff.width - non_time_objs_space
+        time_objs_space = staff.width - non_clocked_space
         # compute ideal widths for objs with durations (notes and rests and chords)
-        time_objs = [x for x in staff.content if _Time.is_time(x)]
+        time_objs = _Clock.get_time_objs(staff)
         durs_to_count: dict = _map_durs_to_count(time_objs)
         ref_dur: str = _find_ref_dur(durs_to_count)
-        # Wieviele red_durs könnten wir insgesamt haben?
+        # Wieviele ref_durs könnten wir insgesamt haben?
         ref_dur_count = sum([v * _dur_ref_ratio(k, ref_dur) for k, v in durs_to_count.items()])
         # ideal width for the reference dur
         # See Ross page 73
         unit_of_space = time_objs_space / ref_dur_count
-        shortest_time_obj = _Time.shortest(time_objs)
+        shortest_time_obj = _Clock.shortest(time_objs)
         shortest_time_obj_width = None
-        _time_obj_space_list = []
+        clock_space_list = []
         for obj in time_objs:
             space = unit_of_space * _dur_ref_ratio(obj.dur, ref_dur) - obj.width
-            _time_obj_space_list.append(space)
+            clock_space_list.append(space)
             if obj is shortest_time_obj:
                 shortest_time_obj_width = space
         # momentan nehme ich an right paddding ist immer 1 staff space...
-        if shortest_time_obj_width >= right_paddings[sorted(right_paddings, key=right_paddings.get)[0]]:
-            return (_time_obj_space_list, right_paddings)
+        if shortest_time_obj_width >= right_padding_dict[sorted(right_padding_dict, key=right_padding_dict.get)[0]]:
+            return (clock_space_list, right_padding_dict)
         else:
             # zieh 1 pixel ab
-            right_paddings = {_type: padding - 1 for _type, padding in right_paddings.items()}
-
+            right_padding_dict = {objtype: padding - 1 for objtype, padding in right_padding_dict.items()}
+            
 def imperfect_punctuation(staff):
-    _time_obj_space_list, right_paddings = time_obj_space_list(staff)
+    clock_space_list, right_padding_dict = get_clocked_space_and_padding(staff, NON_CLOCKED_RIGHT_PADDING)
     if all([isinstance(x, Note) for x in staff.content]):
-        for obj, width in zip(staff.content, _time_obj_space_list):
+        for obj, width in zip(staff.content, clock_space_list):
             obj.width += width
             obj._width_locked = True
     else:
         time_obj_idx = 0
         for obj in staff.content:
             if isinstance(obj, Note):
-                obj.width += _time_obj_space_list[time_obj_idx]
+                obj.width += clock_space_list[time_obj_idx]
                 time_obj_idx += 1
                 obj._width_locked = True
             else:
                 # A barline at the end of the staff doesn't need it's
                 # right margin.
                 if not (isinstance(obj, (FinalBarline, Barline)) and obj.is_last_child()):
-                    obj.width += right_paddings[type(obj)]
+                    obj.width += right_padding_dict[type(obj)]
     
-def punctsys(h):
-    # print("---punct----")
-    first_clock_idx_ = first_clock_idx(h.content)
-    startings=h.content[0:first_clock_idx_]
-    for starting in startings:
-        starting.width += right_guard(starting)
-    clkchunks=S.clock_chunks(h.content[first_clock_idx_:])
-    # print(clkchunks)
-    clocks = list(map(lambda l:l[0], clkchunks))
-    perfwidths = compute_perf_punct(clocks, h.width - sum([x.width for x in startings]))
-    if S.allclocks(h):
-        for C, w in zip(h.content, perfwidths):
-            C.width += w
-            C._width_locked = True
-    else:
-        for c,w in zip(clkchunks, perfwidths):
-            clock = c[0]
-            nonclocks = c[1:]
-            s=sum([nc.width + right_guard(nc) for nc in nonclocks])
-            # s=sum(map(lambda x:x.width + right_guard(x), nonclocks))
-            if s <= w:
-                # add rest of perfect width - sum of nonclocks
-                clock.width += (w - s)
-                clock._width_locked = True
-                for a in nonclocks:
-                    a.width += right_guard(a)
-                    # dont need to lock this width, since it's not touched
-                    # by set_stem_line: set_stem_line only impacts it's papa: the NOTE object
-                    # a._width_locked = 1
-    # h.lineup()
-
-
 def noteandtreble(x):
     return isinstance(x, Note)
 

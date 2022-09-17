@@ -7,11 +7,11 @@ Conveniece for creating score objects
 
 import engine as E
 import cfg
-from engine import VLineSeg, HLineSeg, SForm, HForm, VForm, Char
+from engine import _SMTObject, VLineSeg, HLineSeg, SForm, HForm, VForm, Char
 
 
 
-class _Time:
+class _Clock:
     ORDER = {
         "s": 0, "e": 1, "q": 2,
         "h": 3, "w": 4
@@ -19,24 +19,34 @@ class _Time:
     def __init__(self, dur=None):
         # durations are: "w", "h", "q", "e", "s"
         self.dur = dur or "q"
+    
     @staticmethod
     def shortest(time_objs_list):
         return sorted(time_objs_list,
-                      key=lambda obj: _Time.ORDER[obj.dur])[0]
+                      key=lambda obj: _Clock.ORDER[obj.dur])[0]
+    
     @staticmethod
     def is_time(obj):
-        return isinstance(obj, _Time)
+        return isinstance(obj, _Clock)
+
+    @staticmethod
+    def get_time_objs(staff):
+        return [obj for obj in staff.content if _Clock.is_time(obj)]
+
+    @staticmethod
+    def get_non_time_objs(staff):
+        return [obj for obj in staff.content if not _Clock.is_time(obj)]
 
 
 
 def allclocks(form):
     """Returns True if form's content is made up of Clocks only."""
-    return all(map(lambda C: isinstance(C, _Time), form.content))
+    return all(map(lambda C: isinstance(C, _Clock), form.content))
 
 def clock_chunks(content_list):
     indices = []
     for i in range(len(content_list)):
-        if isinstance(content_list[i], _Time):
+        if isinstance(content_list[i], _Clock):
             indices.append(i)
     chunks = []
     for start, end in zip(indices[:-1], indices[1:]):
@@ -77,24 +87,29 @@ class StaffLines(VForm):
 class Staff(HForm):
     def __init__(self, **kwargs):
         HForm.__init__(self, **kwargs)
-
+        
 class Barline(SForm):
     # Gould, page 38: The barline is thicker than a stave-line ...
     THICKNESS = StaffLines.THICKNESS + .1
+    
     def __init__(self, type="single", **kwargs):
         # Types by Gould: single, double, final, repeat
         self.type = type
         self._char = None
         super().__init__(**kwargs)
+    
     @property
     def char(self):
         return self._char
+    
     @char.setter
     def char(self, new):
         self._char = new
         self.extend_content(self._char)
 
+
 class FinalBarline(HForm):
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.thin = VLineSeg(
@@ -110,6 +125,10 @@ class FinalBarline(HForm):
             thickness=3         # should be decided, don't have beams yet!
         )
         self.extend_content(self.thin, self.space, self.thick)
+
+
+def is_last_barline_on_staff(obj):
+    return isinstance(obj, (Barline, FinalBarline)) and obj.is_last_child()
         
 class KeySig(HForm):
     
@@ -144,19 +163,18 @@ class OpenBeam(E.HLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-class Note(SForm, _Time):
+class Note(SForm, _Clock):
+    
     def __init__(self, head_punch=None, stem_graver=None, obeam_graver=None, cbeam_graver=None,
-    dur=None, pitch=None, **kwargs):
+                 dur=None, pitch=None, **kwargs):
         if "domain" not in kwargs:
             kwargs["domain"] = "treble"
         SForm.__init__(self, **kwargs)
-        _Time.__init__(self, dur)
+        _Clock.__init__(self, dur)
         if pitch:
             self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])
         else:
             self.pitch = _Pitch(name="c", suffix="", octave=4)
-
-        
         self._obeam_graver=obeam_graver
         self._cbeam_graver=cbeam_graver
         

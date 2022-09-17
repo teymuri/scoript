@@ -797,8 +797,7 @@ class _Form(_Canvas, _Font):
 
     @property
     def height(self): return self._height
-    
-    
+        
     @right.setter
     def right(self, new): 
         self.x += (new - self.right)
