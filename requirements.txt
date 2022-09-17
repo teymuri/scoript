@@ -2,3 +2,6 @@ svgwrite
 svgelements
 svgpathtools
 pytest
+
+# https://github.com/tqdm/tqdm
+tqdm

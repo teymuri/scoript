@@ -13,6 +13,8 @@ import copy as cp
 import svgwrite as SW
 import svgelements as SE
 import svgpathtools as SPT
+
+from tqdm import tqdm
 from math import atan2, hypot
 
 ##### Font
@@ -327,7 +329,6 @@ class _SMTObject(_Identifiable):
         to an object more than once, if the object satisfies it's pred.
         """
         depth = -1
-        print("APPLYING RULES:")
         # mark all rules as unapplied, this is necessary because
         # apply_rules could be called multiple times by render for
         # each of it's items.
@@ -342,27 +343,24 @@ class _SMTObject(_Identifiable):
                 # NOTE: rule tables are not sorted! maybe can add also
                 # an order to them (like with rules) to let them be
                 # sortable?!!!
+                
+                # pend_rule_tabs_prog_bar = tqdm(pending_rule_tables)
                 for rt in pending_rule_tables:
-                    # o_rd=(order, ruledictionary), sort pending rules based on their order.
-                    for order, rule in rt.pending_rules(): # sorted(rt.pending_rules(), key=lambda o_rd: o_rd[0]):
-                        if rt.log:
-                            print(f"RT: {rt.name}, DEPTH: {depth}, ORDER: {order}, DESC: '{rule['desc']}'", end=" ")
+                    for order, rule in rt.pending_rules():                       
+                        print(f"RT: {rt.name}, DEPTH: {depth}, ORDER: {order}, DESC: '{rule['desc']}'")
+                            
                         # get in each round the up-to-date list of family_tree (possibly new objects have been added etc....)
-                        applied_to_something = False
-                        # if rt.log: print(", APPLIED:", end=" ")
-                        for member in family_tree(self):
+                        members_prog_bar = tqdm(family_tree(self), leave=0)
+                        for member in members_prog_bar:
                             # Call the predicate function to decide
                             # whether to apply the rule or not.
                             if rule["pred"](member):
+                                members_prog_bar.set_description(f"applying to {member}")
                                 rule["hook"](member)
-                                applied_to_something = True
-                                if rt.log: print("✓", end="")
                                 if isinstance(member, (HForm, VForm)):
                                     member.lineup()
-                        if not applied_to_something and rt.log:
-                            print("✘")
-                        elif applied_to_something and rt.log:
-                            print("") # just the new line for the check mark(s) above
+                            else:
+                                members_prog_bar.set_description(f"skipped {member}")
                         # A rule should not be applied more than once,
                         # so tag it as being applied.
                         rule["applied"] = True
