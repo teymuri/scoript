@@ -12,6 +12,11 @@ In each ADR file, write these sections:
 What is the issue that we're seeing that is motivating this decision or change?
 -->
 # Context
+3 different svg libs are in use: svgwrite, svgelements and svgpathtools.
+
+svgpathtools' scaled() method has a bug which deforms shapes. It offers however good bbox support.
+svgelements has unreliable bbox functionality, but transformations seem to be more safe than in pathtools.
+Bypass: apply transformations in svgelements and pass the d() to pathtools to get bboxes when needed.
 
 
 <!---
