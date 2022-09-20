@@ -22,7 +22,7 @@ svgelements has unreliable bbox functionality, but transformations seem to be mo
 What is the change that we're proposing and/or doing?
 -->
 # Decision
-Use all of them to apply transformations in svgelements and pass the d() to pathtools to get bboxes whenever needed.
+Use elements and pathtools to apply transformations in svgelements and pass the d() to pathtools to get bboxes whenever needed.
 
 <!---
 What becomes easier or more difficult to do because of this change? (Consequences)
