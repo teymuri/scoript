@@ -1,4 +1,3 @@
-
 """
 Semantic Music Typesetting
 """
@@ -34,12 +33,8 @@ def install_font1(path, overwrite=False):
                 font = ET.parse(path).getroot().find("ns:defs", SVG_NAMESPACE).find("ns:font", SVG_NAMESPACE)
                 for glyph in font.findall("ns:glyph", SVG_NAMESPACE):
                     try:
+                        # search for the adr which explains why using pathtools and elements side by side
                         path = SE.Path(glyph.attrib["d"], transform="scale(1 -1)")
-                        # .scaled(sx=1, sy=-1)
-
-                        # svgpathtools' scaled() method has a bug which deforms shapes. It offers however good bbox support.
-                        # svgelements has unreliable bbox functionality, but transformations seem to be more safe than in pathtools.
-                        # Bypass: apply transformations in svgelements and pass the d() to pathtools to get bboxes when needed.
                         min_x, min_y, max_x, max_y = path.bbox()
                         D[name][glyph.get("glyph-name")] = {
                             "d": path.d(), "left": min_x, "right": max_x, 
