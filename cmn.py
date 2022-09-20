@@ -9,8 +9,9 @@ if SMT_DIR not in sys.path:
 import random
 import cfg
 from engine import (RuleTable, render, HForm, mm_to_px, HLineSeg,
-                    Char, CMN, VLineSeg)
-from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline, _Clock, is_last_barline_on_staff)
+                    Char, CMN, VLineSeg, _SimplePointedCurve)
+from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline, _Clock, is_last_barline_on_staff,
+                   SlurOpen, SlurClose)
 from random import randint, choice
 import score as S
 import copy 
@@ -50,8 +51,8 @@ def _pitch_vertical_pos(obj):
     octaves.
 
     """
-    pitch_name: str = obj.pitch.name
-    octave: int = obj.pitch.octave
+    pitch_name = obj.pitch.name
+    octave = obj.pitch.octave
     if obj.domain == "treble":
         pos_on_staff = _treble_pitch_offset_from_staff_bottom(obj)
         ref_oct = 4
@@ -109,19 +110,19 @@ def set_accidental_char(obj):
     obj.char = char
     obj.char.y = _pitch_vertical_pos(obj)
 
-
+def is_note(x):
+    return isinstance(x, Note)
 
 # Setting noteheads
 def set_notehead_char(obj):
-    obj.head_punch = Char(name={
+    """setting note head chars + positioning vertically..."""
+    obj.head_char = Char(name={
         "w": "noteheads.s0",
         "h": "noteheads.s1",
         "q": "noteheads.s2",
         "e": "noteheads.s2"
     }[obj.dur])
-    obj.head_punch.y = _pitch_vertical_pos(obj)
-
-def isnote(x): return isinstance(x, Note)
+    obj.head_char.y = _pitch_vertical_pos(obj)
 
 
 
@@ -129,16 +130,41 @@ def isstem(o): return isinstance(o, S.Stem)
 def set_stem_line(note):
     if note.dur in ("q", "h"): # needs stem
         stem = Stem(x=note.x+.7,
-                    y=note.head_punch.y,
+                    y=note.head_char.y,
                     )
         note.stem_graver = stem
 
+def has_slur_close(obj):
+    return isinstance(obj, Note) and isinstance(obj.slur, SlurClose)
 
+# slures are applied at last wenn alle Noten in richtiger Pos sind,
+# as last rule
+def set_slur(obj):              # obj = Note with closing slur point
+    """setting slures..."""
+    close_slur = obj.slur
+    open_slur = SlurOpen.get_by_id(close_slur.id)
+    open_note = open_slur.owner
+    # breakpoint()
+    mitte = (obj.head_char.right - open_note.head_char.left) / 2
+    cx = open_note.x + mitte
+    cy = open_note.head_char.top - 30
+    curve = _SimplePointedCurve(
+        start_x=open_note.head_char.x + open_note.head_char.width / 2,
+        start_y=open_note.head_char.top - 2,
+        control_x=cx, # ctrl_x
+        control_y=cy,
+        end_x=obj.head_char.x + obj.head_char.width / 2,
+        end_y=obj.head_char.top - 2,
+        end_square_diagonal=.7,
+        thickness=3.5
+    )
+    open_note.root().extend_content(curve)
+    # open_note.slur = curve
 
 def make_accidental_char(accobj):
     if not accobj.punch:
         accobj.punch = S.E.Char(name="accidentals.sharp", canvas_visible=False,
-                     origin_visible=False)
+                                origin_visible=False)
 
 def set_clef_char(clefobj):
     clefobj.char = Char(
@@ -200,12 +226,12 @@ def first_clock_idx(l):
         if isinstance(x, S.Clock):
             return i
 
-def _map_durs_to_count(valued_objs_list) -> dict[str, int]:
+def _map_durs_to_count(valued_objs_list):
     durs_list = [obj.dur for obj in valued_objs_list]
     return {dur: durs_list.count(dur) for dur in set(durs_list)}
 
 # Note that durations MUST BE strings!
-def _find_ref_dur(durs_to_count: dict[str, int]) -> str:
+def _find_ref_dur(durs_to_count):
     """Returns the dur with the heighest number of appearances."""
     return max(durs_to_count, key=durs_to_count.get)
 
@@ -216,7 +242,7 @@ def get_non_clocked_space(staff, right_padding_dict):
     for x in objs:
         space += x.width
         if not is_last_barline_on_staff(x):
-            space += right_padding_dict[type(x)]
+            space += right_padding_dict.get(type(x), 0)
     return space
 
 def get_clocked_space_and_padding(staff, right_padding_dict):
@@ -227,10 +253,10 @@ def get_clocked_space_and_padding(staff, right_padding_dict):
         # get the remaining space for valued objs
         time_objs_space = staff.width - non_clocked_space
         # compute ideal widths for objs with durations (notes and rests and chords)
-        time_objs = _Clock.get_time_objs(staff)
-        durs_to_count: dict = _map_durs_to_count(time_objs)
-        ref_dur: str = _find_ref_dur(durs_to_count)
-        # Wieviele ref_durs könnten wir insgesamt haben?
+        time_objs = _Clock.get_clock_objs(staff)
+        durs_to_count = _map_durs_to_count(time_objs)
+        ref_dur = _find_ref_dur(durs_to_count)
+        # Wieviele ref_durs konnten wir insgesamt haben?
         ref_dur_count = sum([v * _dur_ref_ratio(k, ref_dur) for k, v in durs_to_count.items()])
         # ideal width for the reference dur
         # See Ross page 73
@@ -249,8 +275,11 @@ def get_clocked_space_and_padding(staff, right_padding_dict):
         else:
             # zieh 1 pixel ab
             right_padding_dict = {objtype: padding - 1 for objtype, padding in right_padding_dict.items()}
-            
-def imperfect_punctuation(staff):
+
+# Nothing should be added to the notes after this stage which would
+# change it's dimensions
+def horizontal_spacing(staff):
+    """horizontal spacing"""
     clock_space_list, right_padding_dict = get_clocked_space_and_padding(staff, NON_CLOCKED_RIGHT_PADDING)
     if all([isinstance(x, Note) for x in staff.content]):
         for obj, width in zip(staff.content, clock_space_list):
@@ -266,23 +295,21 @@ def imperfect_punctuation(staff):
             else:
                 # A barline at the end of the staff doesn't need it's
                 # right margin.
-                if not (isinstance(obj, (FinalBarline, Barline)) and obj.is_last_child()):
-                    obj.width += right_padding_dict[type(obj)]
+                if not (isinstance(obj, (FinalBarline, Barline)) and obj.is_last_child()) and not isinstance(obj, _SimplePointedCurve):
+                    obj.width += right_padding_dict.get(type(obj), 0)
     
-def noteandtreble(x):
-    return isinstance(x, Note)
 
 
 
-def greenhead(x): x.head_punch.color = e.SW.utils.rgb(0,0,100,"%")
+def greenhead(x): x.head_char.color = e.svgwrite.utils.rgb(0,0,100,"%")
 def reden(x): 
     print(x.id, x.content)
-    x.content[0].color = e.SW.utils.rgb(100,0,0,"%")
+    x.content[0].color = e.svgwrite.utils.rgb(100,0,0,"%")
 def Sid(x): return x.id == "S"
 def isline(x): return isinstance(x, (System, S.E.HForm))
 def ish(x): return isinstance(x, e.HForm)
 def isclef(x): return isinstance(x, S.Clef)
-def opachead(n): n.head_punch.opacity = .3
+def opachead(n): n.head_char.opacity = .3
 
 
 def setbm(l):
@@ -359,8 +386,8 @@ test
 CMN.unsafeadd(set_simple_timesig_chars,
               is_simple_timesig)
 
-CMN.unsafeadd(set_notehead_char, noteandtreble,)
-# CMN.unsafeadd(notehead_vertical_pos, noteandtreble, "note vertical position")
+CMN.unsafeadd(set_notehead_char, is_note)
+# CMN.unsafeadd(notehead_vertical_pos, is_note, "note vertical position")
 
 CMN.unsafeadd(set_keysig_char_list, is_keysig)
 
@@ -368,7 +395,7 @@ CMN.unsafeadd(set_accidental_char,
               is_accidental)
 
 
-S.E.CMN.unsafeadd(set_stem_line, isnote)
+S.E.CMN.unsafeadd(set_stem_line, is_note)
 
 S.E.CMN.unsafeadd(set_clef_char, isclef)
 
@@ -378,11 +405,11 @@ CMN.unsafeadd(set_barline_char,
 CMN.unsafeadd(place_final_barline,
               is_final_barline)
 
-CMN.unsafeadd(imperfect_punctuation,
+CMN.unsafeadd(horizontal_spacing,
               lambda x: isinstance(x, Staff))
 
 CMN.unsafeadd(StaffLines.make,
-              lambda obj: isnote(obj) or \
+              lambda obj: is_note(obj) or \
               isclef(obj) or \
               is_simple_timesig(obj) or \
               is_accidental(obj) or \
@@ -390,6 +417,7 @@ CMN.unsafeadd(StaffLines.make,
               is_barline(obj) and not obj.is_last_child() or \
               is_final_barline(obj))
 
+CMN.unsafeadd(set_slur, has_slur_close)
 
 if __name__ == "__main__":
     # a = Accidental(pitch=("f", 5, "#"))
@@ -475,18 +503,25 @@ if __name__ == "__main__":
     def _clef(): return Clef(pitch=("f", 3, ""))
     def _timesig(): return SimpleTimeSig()
     def t1(): return [Note(dur="q",
-                            pitch=("d", 3, ""),
-                            domain="bass"),
-                       Note(dur="q",
-                            pitch=("d", 3, ""),
-                            domain="bass"),
-                       Note(dur="q",
-                            pitch=("d", 3, ""),
-                            domain="bass"),
-                       Note(dur="q",
-                            pitch=("e", 3, ""),
-                            domain="bass"),
-                       Barline()]
+                           pitch=("d", 3, ""),
+                           domain="bass",
+                           slur=SlurOpen(id="a")
+                           ),
+                      Note(dur="q",
+                           pitch=("d", 3, ""),
+                           domain="bass",
+                           
+                           ),
+                      Note(dur="q",
+                           pitch=("d", 3, ""),
+                           domain="bass",
+                           ),
+                      Note(dur="q",
+                           pitch=("e", 3, ""),
+                           domain="bass",
+                           ),
+                      Barline()]
+    
     def t2(): return [Note(dur="q",
                            pitch=("f", 3, ""),
                            domain="bass"),
@@ -519,11 +554,13 @@ if __name__ == "__main__":
                            domain="bass"),
                       Note(dur="h",
                            pitch=("d", 3, ""),
-                           domain="bass"),
+                           domain="bass",
+                           slur=SlurClose(id="a")),
                       Barline()]
     def t5(): return [Note(dur="q",
                            pitch=("f", 3, ""),
-                           domain="bass"),
+                           domain="bass",
+                           slur=SlurOpen(id="b")),
                       Note(dur="q",
                            pitch=("f", 3, ""),
                            domain="bass"),
@@ -565,21 +602,23 @@ if __name__ == "__main__":
              domain="bass"),
         Note(dur="h",
              pitch=("f", 3, ""),
-             domain="bass"),
+             domain="bass",
+             slur=SlurClose(id="b")),
         Barline()]
-    def t9(): return [        Note(dur="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Note(dur="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Note(dur="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Note(dur="q",
-             pitch=("a", 3, ""),
-             domain="bass"),
-        Barline()]
+    def t9(): return [Note(dur="q",
+                           pitch=("a", 3, ""),
+                           domain="bass",
+                           slur=SlurOpen(id="c")),
+                      Note(dur="q",
+                           pitch=("a", 3, ""),
+                           domain="bass"),
+                      Note(dur="q",
+                           pitch=("a", 3, ""),
+                           domain="bass"),
+                      Note(dur="q",
+                           pitch=("a", 3, ""),
+                           domain="bass"),
+                      Barline()]
     def t10(): return [
         Note(dur="q",
              pitch=("b", 3, ""),
@@ -589,11 +628,13 @@ if __name__ == "__main__":
              domain="bass"),
         Note(dur="h",
              pitch=("b", 3, ""),
-             domain="bass"),
+             domain="bass",
+             slur=SlurClose(id="c")),
         Barline()]
     def t11(): return [        Note(dur="q",
              pitch=("g", 3, ""),
-             domain="bass"),
+                                    domain="bass",
+                                    slur=SlurOpen(id="d")),
         Note(dur="q",
              pitch=("g", 3, ""),
              domain="bass"),
@@ -613,12 +654,14 @@ if __name__ == "__main__":
              domain="bass"),
         Note(dur="h",
              pitch=("a", 3, ""),
-             domain="bass"),
+             domain="bass",
+             slur=SlurClose(id="d")),
         Barline()
 ]
     def t13(): return [        Note(dur="q",
              pitch=("d", 3, ""),
-             domain="bass"),
+                                    domain="bass",
+                                    slur=SlurOpen(id="e")),
         Note(dur="q",
              pitch=("d", 3, ""),
              domain="bass"),
@@ -663,76 +706,88 @@ if __name__ == "__main__":
              domain="bass"),
         Note(dur="h",
              pitch=("d", 3, ""),
-             domain="bass"),
+             domain="bass",
+             slur=SlurClose(id="e")),
         FinalBarline()
 ]
     
     # oneliner
     one = Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5()+t6()+t7()+t8()+t9()+t10()+t11()+t12()+t13()+t14()+t15()+t16(),
+                
                width=mm_to_px(270),
                x=20,
                y=60
                 )
-    two1 = Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5()+t6()+t7()+t8(),
-                   width=mm_to_px(270),
-                   x=20,
-                   y=one.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 3)
-    two2 = Staff(content=[_clef(),_keysig()]+t9()+t10()+t11()+t12()+t13()+t14()+t15()+t16(),
-                   width=mm_to_px(270),
-                   x=20,
-                   y=two1.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
-                   )
-    three1=Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5(),
-                 width=mm_to_px(270),
-                 x=20,
-                 y=two2.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 3
-                 )
-    three2=Staff(content=[_clef(),_keysig()]+t6()+t7()+t8()+t9()+t10(),
-                 width=mm_to_px(270),
-                 x=20,
-                 y=three1.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
-                 )
-    three3=Staff(content=[_clef(),_keysig()]+t11()+t12()+t13()+t14()+t15()+t16(),
-                 width=mm_to_px(270),
-                 x=20,
-                 y=three2.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
-                 )
-    # 4
-    four1=Staff(content=[_clef(),_keysig(), _timesig()]+t1()+t2()+t3()+t4(),
-                 width=mm_to_px(270),
-                 x=20,
-                 y=three3.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 3
-                 )
-    four2=Staff(content=[_clef(),_keysig()]+t5()+t6()+t7()+t8(),
-                 width=mm_to_px(270),
-                 x=20,
-                 y=four1.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
-                 )
-    four3=Staff(content=[_clef(),_keysig()]+t9()+t10()+t11()+t12(),
-                 width=mm_to_px(270),
-                 x=20,
-                 y=four2.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
-                 )
-    four4=Staff(content=[_clef(),_keysig()]+t13()+t14()+t15()+t16(),
-                 width=mm_to_px(270),
-                 x=20,
-                 y=four3.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
-                 )
+    
+    # two1 = Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5()+t6()+t7()+t8(),
+    #                width=mm_to_px(270),
+    #                x=20,
+    #                y=one.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 3)
+    # two2 = Staff(content=[_clef(),_keysig()]+t9()+t10()+t11()+t12()+t13()+t14()+t15()+t16(),
+    #                width=mm_to_px(270),
+    #                x=20,
+    #                y=two1.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
+    #                )
+    # three1=Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5(),
+    #              width=mm_to_px(270),
+    #              x=20,
+    #              y=two2.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 3
+    #              )
+    # three2=Staff(content=[_clef(),_keysig()]+t6()+t7()+t8()+t9()+t10(),
+    #              width=mm_to_px(270),
+    #              x=20,
+    #              y=three1.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
+    #              )
+    # three3=Staff(content=[_clef(),_keysig()]+t11()+t12()+t13()+t14()+t15()+t16(),
+    #              width=mm_to_px(270),
+    #              x=20,
+    #              y=three2.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
+    #              )
+    # # 4
+    # four1=Staff(content=[_clef(),_keysig(), _timesig()]+t1()+t2()+t3()+t4(),
+    #              width=mm_to_px(270),
+    #              x=20,
+    #              y=three3.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 3
+    #              )
+    # four2=Staff(content=[_clef(),_keysig()]+t5()+t6()+t7()+t8(),
+    #              width=mm_to_px(270),
+    #              x=20,
+    #              y=four1.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
+    #              )
+    # four3=Staff(content=[_clef(),_keysig()]+t9()+t10()+t11()+t12(),
+    #              width=mm_to_px(270),
+    #              x=20,
+    #              y=four2.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
+    #              )
+    # four4=Staff(content=[_clef(),_keysig()]+t13()+t14()+t15()+t16(),
+    #              width=mm_to_px(270),
+    #              x=20,
+    #              y=four3.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
+    #              )
     
     render(one,
-           two1, two2,
-           three1, three2, three3,
-           four1,four2,four3,four4,
+           # two1, two2,
+           # three1, three2, three3,
+           # four1,four2,four3,four4,
            path="/tmp/test.svg")
-
-    # render(Staff(content=[
-    #     Note(pitch=("f", 5, ""), dur="q"),
-    #     Note(pitch=("f", 5, ""), dur="e"),
-    #     Accidental(pitch=("f", 5, "#")),
-    #     Note(pitch=("f", 5, ""), dur="e"),
-    #     Note(pitch=("f", 5, ""), dur="q"),
-    #     Note(pitch=("f", 5, ""), dur="q"),
-    #     Barline()
-    # ],
-    #              width=mm_to_px(100)),
-    #        path="/tmp/test.svg")
+    
+#     staff = Staff(content=[
+#         Note(pitch=("g", 4, ""), dur="e",
+#              slur=SlurOpen(id="x")
+#              ),
+#         Note(pitch=("f", 5, ""), dur="e",
+#              ),
+#         Accidental(pitch=("f", 5, "#")),
+#         Note(pitch=("f", 5, ""), dur="e",
+# ),
+#         Note(pitch=("f", 5, ""), dur="e",
+# ),
+#         Note(pitch=("f", 5, ""), dur="e",
+# ),
+#         Note(pitch=("f", 4, ""), dur="e",
+#              slur=SlurClose(id="x")
+#              ),
+#         Barline()
+#     ], x=40, y=100, width=mm_to_px(100))
+#     render(staff,
+#            path="/tmp/test.svg")

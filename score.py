@@ -1,13 +1,13 @@
 
 
 """
-Conveniece for creating score objects
+Conveniece objects for creating music
 """
 
 
 import engine as E
 import cfg
-from engine import _SMTObject, VLineSeg, HLineSeg, SForm, HForm, VForm, Char
+from engine import _SMTObject, VLineSeg, HLineSeg, SForm, HForm, VForm, Char, _SimplePointedCurve
 
 
 
@@ -25,17 +25,17 @@ class _Clock:
         return sorted(time_objs_list,
                       key=lambda obj: _Clock.ORDER[obj.dur])[0]
     
-    @staticmethod
-    def is_time(obj):
-        return isinstance(obj, _Clock)
+    @classmethod
+    def is_clock(cls, obj):
+        return isinstance(obj, cls)
 
     @staticmethod
-    def get_time_objs(staff):
-        return [obj for obj in staff.content if _Clock.is_time(obj)]
+    def get_clock_objs(staff):
+        return [obj for obj in staff.content if _Clock.is_clock(obj)]
 
     @staticmethod
     def get_non_time_objs(staff):
-        return [obj for obj in staff.content if not _Clock.is_time(obj)]
+        return [obj for obj in staff.content if not _Clock.is_clock(obj)]
 
 
 
@@ -72,6 +72,7 @@ class StaffLines(VForm):
     
     @staticmethod               # static because it's going to be used in rules
     def make(obj):
+        """drawing staff lines..."""
         for i in range(5):
             y = i * cfg.DESIRED_STAFF_SPACE_IN_PX + obj.current_ref_glyph_top()
             line = HLineSeg(length=obj.width,
@@ -84,10 +85,12 @@ class StaffLines(VForm):
                             visible=True)
             obj.extend_content(line)
 
+
 class Staff(HForm):
     def __init__(self, **kwargs):
         HForm.__init__(self, **kwargs)
-        
+
+
 class Barline(SForm):
     # Gould, page 38: The barline is thicker than a stave-line ...
     THICKNESS = StaffLines.THICKNESS + .1
@@ -165,8 +168,15 @@ class OpenBeam(E.HLineSeg):
 
 class Note(SForm, _Clock):
     
-    def __init__(self, head_punch=None, stem_graver=None, obeam_graver=None, cbeam_graver=None,
-                 dur=None, pitch=None, **kwargs):
+    def __init__(self,
+                 head_char=None,
+                 stem_graver=None,
+                 obeam_graver=None,
+                 cbeam_graver=None,
+                 dur=None,
+                 pitch=None,
+                 slur=None,
+                 **kwargs):
         if "domain" not in kwargs:
             kwargs["domain"] = "treble"
         SForm.__init__(self, **kwargs)
@@ -177,17 +187,30 @@ class Note(SForm, _Clock):
             self.pitch = _Pitch(name="c", suffix="", octave=4)
         self._obeam_graver=obeam_graver
         self._cbeam_graver=cbeam_graver
-        
-        self._head_punch = head_punch
+        self._slur = slur
+        if self._slur:
+            self._slur.owner = self
+        self._head_char = head_char
         self._stem_graver = stem_graver
 
     @property
-    def head_punch(self): return self._head_punch
-    @head_punch.setter
-    def head_punch(self, newhead):
+    def slur(self):
+        return self._slur
+
+    @slur.setter
+    def slur(self, new):
+        self._slur = new
+        self.extend_content(self._slur)
+        
+    @property
+    def head_char(self):
+        return self._head_char
+    
+    @head_char.setter
+    def head_char(self, newhead):
         # wird auch flag sein!!!!!!!!!!!!!!!!!!!!!!!!!!
-        self._head_punch = newhead
-        self.extend_content(self._head_punch)
+        self._head_char = newhead
+        self.extend_content(self._head_char)
 
     @property
     def stem_graver(self): return self._stem_graver
@@ -268,4 +291,27 @@ class SimpleTimeSig(E.VForm):
             self.delcont(lambda c: c.id == self._denom_char.id)
         self._denom_char = new
         self.extend_content(self._denom_char)
+
+
+class _Slur:
     
+    def __init__(self, id, owner=None):
+        self.id = id
+        self.owner = owner
+
+
+class SlurOpen(_Slur):
+    
+    registry = dict()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        SlurOpen.registry[self.id] = self
+    
+    @staticmethod
+    def get_by_id(id):
+        return SlurOpen.registry[id]
+
+
+class SlurClose(_Slur):
+    pass

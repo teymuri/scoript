@@ -1,7 +1,8 @@
 svgwrite
 svgelements
+# https://github.com/mathandy/svgpathtools
 svgpathtools
-pytest
 
+pytest
 # https://github.com/tqdm/tqdm
 tqdm

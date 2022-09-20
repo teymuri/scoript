@@ -9,12 +9,12 @@ import cfg                      #
 import xml.etree.ElementTree as ET
 import subprocess as sp
 import copy as cp
-import svgwrite as SW
-import svgelements as SE
-import svgpathtools as SPT
+import svgwrite
+import svgelements
+import svgpathtools
 
 from tqdm import tqdm
-from math import atan2, hypot
+from math import atan2, hypot, sqrt
 
 ##### Font
 
@@ -120,7 +120,7 @@ def scale_by_staff_height_factor(r):
 
 
 
-def _index_generation_mapping(obj, gen_idx: int, gen_dict: dict) -> dict[int, list]:
+def _index_generation_mapping(obj, gen_idx, gen_dict):
     """Returns a mapping of generation indices to generation family_tree
     of object. Index is added to the output of this helper function to
     make the descendants function capable of sorting based on
@@ -195,7 +195,7 @@ class RuleTable:
         return [(order, rule) for (order, rule) in sorted(self.rules.items()) if not rule["applied"]]
     
     @classmethod
-    def pending_rule_tables(cls) -> list[dict[int, dict]]:
+    def pending_rule_tables(cls):
         """Returns any rule tables if there is any unapplied rules in it."""
         return [rule_table for rule_table in RuleTable.RULE_TABLES if rule_table.pending_rules()]
     
@@ -212,7 +212,7 @@ class RuleTable:
             self._pred_registry.append(phash)
         
     def unsafeadd(self, hook, pred, desc=None): # rename register
-        self.rules[self._order] = self.make_rule(hook, pred, desc or hook.__name__)
+        self.rules[self._order] = self.make_rule(hook, pred, desc or hook.__doc__)
         # next rule will be added at the next position, this order
         # decides when the rule should be applied.
         self._order +=1
@@ -236,61 +236,69 @@ _RT = CMN = COMMON_MUSIC_NOTATION = RuleTable(name="CMN")
 
 
 _registry = {}
-def getbyid(id): return _registry[id]
+# def getbyid(id): return _registry[id]
 
-class _Identifiable:
-    """?"""
+class _SVGIdentifier:
+    """Identifies objects in the svg document."""
     def __init__(self, id_class=None):
-        self.id = self.assign_id(id_class)
+        self.svgid = self.assign_id(id_class)
     
     def assign_id(self, id_class):
-        id = f"{id_class.__name__}{id_class.id_counter}"
-        id_class.id_counter += 1
-        return id
+        svgid = f"{id_class.__name__}{id_class.svgid_counter}"
+        id_class.svgid_counter += 1
+        return svgid
 
-class _SMTPath(_Identifiable, SW.path.Path):
-    id_counter = 0
+class _SMTPath(_SVGIdentifier, svgwrite.path.Path):
+    svgid_counter = 0
     def __init__(self, is_bbox=False, main_obj_id=None, **kwargs):
-        _Identifiable.__init__(self, kwargs.pop("id_class", self.__class__))
+        _SVGIdentifier.__init__(self, kwargs.pop("id_class", self.__class__))
         # Pass the just created id to svgwrite.path.Path, otherwise
         # it will use it's own id (which is something like path1234).
         if is_bbox:
-            kwargs["id"] = f"{self.id}-BBox-for-{main_obj_id}"
+            kwargs["id"] = f"{self.svgid}-BBOX-FOR-{main_obj_id}"
         else:
-            kwargs["id"] = self.id
-        SW.path.Path.__init__(self, **kwargs)
+            kwargs["id"] = self.svgid
+        svgwrite.path.Path.__init__(self, **kwargs)
 
-class _SMTObject(_Identifiable):
-    id_counter = 0
-    def __init__(self, domain=None, id=None, id_class=None,
+class _SMTObject(_SVGIdentifier):
+    registry = dict()
+    svgid_counter = 0
+    def __init__(self,
+                 domain=None,
+                 svgid=None,
+                 id_class=None,
+                 id=None,
                  # We use the Common Music Notation as default rule
                  # table.
                  ruletable=COMMON_MUSIC_NOTATION,
                  toplevel=False):
-        _Identifiable.__init__(self, id_class or _SMTObject)
+        _SVGIdentifier.__init__(self, id_class or _SMTObject)
         self.toplevel = toplevel
         self.ancestors = []
-        # self.id = id or self.assign_id()
         self._svg_list = []
         self.domain = domain
-        # self.ruletable = ruletable or COMMON_MUSIC_NOTATION
         self.ruletable = ruletable
-        # self.index = self._get_index()
-        _registry[self.id] = self
+        self.id = id
+        _registry[self.svgid] = self
+        _SMTObject.registry[self.id] = self
 
-    def pack_svg_list(self): self._notimplemented("pack_svg_list")
+    @staticmethod
+    def get_by_id(id):
+        return _SMTObject.registry[id]
+        
+    def pack_svg_list(self):
+        not_implemented_error("pack_svg_list")
     
-    def _notimplemented(self, method_name):
+    def not_implemented_error(self, method_name):
         """Crashs if the derived class hasn't implemented this important method."""
-        raise NotImplementedError(f"{self.__class__.__name__} must override {method_name}!")
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must overwrite {method_name}!"
+        )
     
-    def addsvg(self, *elements):
-        self._svg_list.extend(elements)
-
-    # NOTE: following methods couldn't have been written as a at
+    # Following methods couldn't have been written as a at
     # init-time initialized attribute, since the parental relationship
     # which is crucial for these functions is possibly not set at
-    # init-time yet.
+    # init-time yet or has been modified in the meanwhile.
     def parent(self):
         return self.ancestors[-1]
     
@@ -384,13 +392,12 @@ PAGEH, PAGEW = page_size("largest")
 def render(*items, path="/tmp/smt"):
     """score items
     """
-    drawing = SW.drawing.Drawing(filename=path, size=(PAGEW, PAGEH), debug=True)
+    drawing = svgwrite.drawing.Drawing(filename=path, size=(PAGEW, PAGEH), debug=True)
     for item in items:
         item.apply_rules()
-        # Form's packsvglst will call packsvglst on descendants recursively
         item.pack_svg_list()
-        for elem in item._svg_list:
-            drawing.add(elem)
+        for svg_elem in item._svg_list:
+            drawing.add(svg_elem)
     drawing.save(pretty=True)
     print("wrote to " + path)
 
@@ -407,6 +414,8 @@ class _Canvas(_SMTObject):
                  rotate=0,
                  skewx=0,
                  skewy=0,
+                 # Width will be 0 if not given. It also will be
+                 # locked if given.
                  width=None,
                  height=None,
                  canvas_visible=True,
@@ -422,7 +431,7 @@ class _Canvas(_SMTObject):
         self.rotate=rotate
         self.canvas_opacity = canvas_opacity or 0.3
         self.canvas_visible = cfg.CANVAS_VISIBLE and canvas_visible
-        self.canvas_color = canvas_color or SW.utils.rgb(20, 20, 20, "%")
+        self.canvas_color = canvas_color or svgwrite.utils.rgb(20, 20, 20, "%")
         self.origin_visible = cfg.ORIGIN_VISIBLE and origin_visible
         self._xscale = xscale
         self._yscale = yscale
@@ -431,8 +440,6 @@ class _Canvas(_SMTObject):
         self.x_locked = False if x is None else True
         self._y = 0 if y is None else y
         self.y_locked = False if y is None else True
-        # self.y_locked = y_locked
-        # self.x_locked = x_locked
         self._width = 0 if width is None else width
         self._width_locked = False if width is None else True
         self._height = 0 if height is None else height
@@ -452,21 +459,18 @@ _ORIGIN_CIRCLE_R = 4
 _ORIGIN_LINE_THICKNESS = 0.06
 def origin_elems(obj, main_obj_id):
     halfln = _ORIGIN_CROSS_LEN / 2
-    return [SW.shapes.Circle(center=(obj.x, obj.y), r=_ORIGIN_CIRCLE_R,
-                             # id=obj.id + "OriginCircle",
-                             id=f"OriginCircle-for-{main_obj_id}",
-                             stroke=SW.utils.rgb(87, 78, 55), fill="none",
-                             stroke_width=_ORIGIN_LINE_THICKNESS),
-            SW.shapes.Line(start=(obj.x-halfln, obj.y), end=(obj.x+halfln, obj.y),
-                           # id=obj.id + "OriginHLine",
-                           id=f"OriginHLine-for-{main_obj_id}",
-                           stroke=SW.utils.rgb(87, 78, 55), 
-                           stroke_width=_ORIGIN_LINE_THICKNESS),
-            SW.shapes.Line(start=(obj.x, obj.y-halfln), end=(obj.x, obj.y+halfln),
-                           # id=obj.id + "OriginVLine",
-                           id=f"OriginVLine-for-{main_obj_id}",
-                           stroke=SW.utils.rgb(87, 78, 55), 
-                           stroke_width=_ORIGIN_LINE_THICKNESS)]
+    return [svgwrite.shapes.Circle(center=(obj.x, obj.y), r=_ORIGIN_CIRCLE_R,
+                                   id=f"OriginCircle-for-{main_obj_id}",
+                                   stroke=svgwrite.utils.rgb(87, 78, 55), fill="none",
+                                   stroke_width=_ORIGIN_LINE_THICKNESS),
+            svgwrite.shapes.Line(start=(obj.x-halfln, obj.y), end=(obj.x+halfln, obj.y),
+                                 id=f"OriginHLine-for-{main_obj_id}",
+                                 stroke=svgwrite.utils.rgb(87, 78, 55), 
+                                 stroke_width=_ORIGIN_LINE_THICKNESS),
+            svgwrite.shapes.Line(start=(obj.x, obj.y-halfln), end=(obj.x, obj.y+halfln),
+                                 id=f"OriginVLine-for-{main_obj_id}",
+                                 stroke=svgwrite.utils.rgb(87, 78, 55), 
+                                 stroke_width=_ORIGIN_LINE_THICKNESS)]
 
 
 class _Font:
@@ -485,7 +489,7 @@ class _View(_Canvas):
     """
     def __init__(self, color=None, opacity=None, visible=True, **kwargs):
         super().__init__(**kwargs)
-        self.color = color or SW.utils.rgb(0, 0, 0)
+        self.color = color or svgwrite.utils.rgb(0, 0, 0)
         self.opacity = opacity or 1
         self.visible = visible
     
@@ -503,7 +507,8 @@ class _View(_Canvas):
             for anc in reversed(self.ancestors):
                 anc.refresh_verticals()
     
-    def _bbox(self): self._notimplemented("_bbox")
+    def _bbox(self):
+        self.not_implemented_error("_bbox")
     
     @property
     def left(self):
@@ -551,7 +556,7 @@ class Char(_View, _Font):
         _Font.__init__(self, font)
         self.name = name
         self._glyph = get_glyph(self.name, self.font)
-        self.canvas_color = SW.utils.rgb(100, 0, 0, "%")
+        self.canvas_color = svgwrite.utils.rgb(100, 0, 0, "%")
     
     @_Canvas.xscale.setter
     def xscale(self, new):
@@ -572,11 +577,12 @@ class Char(_View, _Font):
             fill=self.color,
             fill_opacity=self.opacity)
         bbox = _SMTPath(
-            d=SPT.bbox2path(*self._bbox()).d(),
+            d=svgpathtools.bbox2path(*self._bbox()).d(),
             fill=self.canvas_color,
             fill_opacity=self.canvas_opacity,
             is_bbox=True,
-            main_obj_id=char.id)
+            main_obj_id=char.svgid)
+        # canvas
         if self.canvas_visible:
             self._svg_list.append(bbox)
         # Music character itself
@@ -584,12 +590,12 @@ class Char(_View, _Font):
             self._svg_list.append(char)
         # Add the origin
         if self.origin_visible:
-            for elem in origin_elems(self, char.id):
+            for elem in origin_elems(self, char.svgid):
                 self._svg_list.append(elem)
     
     # svgelements
     def _path(self):
-        path = SE.Path(self._glyph)
+        path = svgelements.Path(self._glyph)
         # path *= f"scale({self.xscale * _toplevel_scaler()}, {self.yscale * _toplevel_scaler()})"
         path *= f"scale({scale_by_staff_height_factor(self.xscale)}, {scale_by_staff_height_factor(self.yscale)})"
         # First rotate at 00,
@@ -600,7 +606,8 @@ class Char(_View, _Font):
     
     # svgelements bbox seems to have a bug getting bboxes of transformed (rotated) paths,
     # use svgpathtools bbox instead (xmin, xmax, ymin, ymax).
-    def _bbox(self): return SPT.Path(self._path().d()).bbox()
+    def _bbox(self):
+        return svgpathtools.Path(self._path().d()).bbox()
     
     
 
@@ -610,7 +617,7 @@ class _Form(_Canvas, _Font):
         _Canvas.__init__(self, **kwargs)
         _Font.__init__(self, font)
         self.content = content or []
-        self._establish_parent_relation(self.content)
+        self.establish_parent_relation(self.content)
         # The following 3 attributes carry information about the
         # height of a Form object. Each Form is created with a default
         # (imaginary) height, which is equal to the height of the
@@ -653,7 +660,7 @@ class _Form(_Canvas, _Font):
         # querying the height must happen after refreshing top and bottom
         self._height = self.query_height()
     
-    def _establish_parent_relation(self, obj_list):
+    def establish_parent_relation(self, obj_list):
         """Establishes parental relationships to each obj in obj_list:
         adds this object and all it's parents to the ancestors list of
         new objects and their descendants.
@@ -665,7 +672,7 @@ class _Form(_Canvas, _Font):
                     member.ancestors.insert(0, parent)
     
     # Children is a sequence. This method modifies only ancestor lists.
-    def _establish_parental_relationship(self, children):
+    def _establish_parental_relationship(self, children): # DEPRECATED!
         for child in children:
             assert isinstance(child, _SMTObject), "Form can only contain MeObjs!"
             child.ancestors.insert(0, self)
@@ -739,11 +746,11 @@ class _Form(_Canvas, _Font):
         if self.canvas_visible: 
             # self._svg_list.append(_bboxelem(self))
             self._svg_list.append(
-                SW.shapes.Rect(insert=(self.left, self.top),
-                                size=(self.width, self.height), 
-                                fill=self.canvas_color,
-                                fill_opacity=self.canvas_opacity, 
-                                id=f"{self.id}-BBox")
+                svgwrite.shapes.Rect(insert=(self.left, self.top),
+                                     size=(self.width, self.height), 
+                                     fill=self.canvas_color,
+                                     fill_opacity=self.canvas_opacity, 
+                                     id=f"{self.svgid}-BBOX")
             )
         # Add content
         for C in self.content:
@@ -754,7 +761,7 @@ class _Form(_Canvas, _Font):
             self._svg_list.extend(C._svg_list)
         # Origin
         if self.origin_visible:
-            self._svg_list.extend(origin_elems(self, self.id))
+            self._svg_list.extend(origin_elems(self, self.svgid))
         
     @property
     def left(self):
@@ -803,23 +810,25 @@ class SForm(_Form):
         
     def __init__(self, **kwargs):
         _Form.__init__(self, **kwargs)
-        self.canvas_color = SW.utils.rgb(0, 100, 0, "%")
+        self.canvas_color = svgwrite.utils.rgb(0, 100, 0, "%")
         self.domain = kwargs.get("domain", "stacked")
         # Content may contain children with absolute x, so compute horizontals with respect to them.
         # See whats happening in _Form init with children without absx!
         self.refresh_horizontals()
         self.refresh_verticals()
 
-    def lineup(self): pass
+    def lineup(self):
+        pass
         
     # Sinnvoll nur in rule-application-time?!!!!!!!!!!!!!!!
-    def extend_content(self, *children):
+    def extend_content(self, *objs):
         """Extend_Contents new children to Form's content list."""
-        self._establish_parental_relationship(children)
-        for c in children:
+        # self._establish_parental_relationship(objs)
+        self.establish_parent_relation(objs)
+        for c in objs:
             c.x = self.x
             c.y = self.y
-        self.content.extend(children)
+        self.content.extend(objs)
         # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # # which would have been to early!????
         self.refresh_horizontals()
@@ -835,20 +844,20 @@ class HForm(_Form):
 
     def __init__(self, **kwargs):
         _Form.__init__(self, **kwargs)
-        self.canvas_color = SW.utils.rgb(0, 0, 100, "%")
+        self.canvas_color = svgwrite.utils.rgb(0, 0, 100, "%")
         self.domain = kwargs.get("domain", "horizontal")
         self.lineup()
         self.refresh_horizontals()
         self.refresh_verticals()
     
-    def extend_content(self, *children):
+    def extend_content(self, *objs):
         """Extend_Contents new children to Form's content list."""
-        # self._establish_parental_relationship(children)
-        self._establish_parent_relation(children)
-        for new_obj in children:
+        # self._establish_parental_relationship(objs)
+        self.establish_parent_relation(objs)
+        for new_obj in objs:
             new_obj.x = self.x
             new_obj.y = self.y
-        self.content.extend(children)
+        self.content.extend(objs)
         # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # # which would have been to early!????
         self.lineup()
@@ -863,6 +872,7 @@ class HForm(_Form):
         for a, b in zip(self.content[:-1], self.content[1:]):            
             b.left = a.right
 
+
 class VForm(_Form):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -874,14 +884,14 @@ class VForm(_Form):
         for a, b in zip(self.content[:-1], self.content[1:]):
             b.top = a.bottom
     
-    def extend_content(self, *children):
+    def extend_content(self, *objs):
         """Extend_Contents new children to Form's content list."""
-        self._establish_parental_relationship(children)
-        # self._establish_parent_relation(children)
-        for c in children:
+        # self._establish_parental_relationship(objs)
+        self.establish_parent_relation(objs)
+        for c in objs:
             c.x = self.x
             c.y = self.y
-        self.content.extend(children)
+        self.content.extend(objs)
         # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # # which would have been to early!????
         self.lineup()
@@ -919,11 +929,11 @@ class _LineSeg(_View):
         )
         # bbox
         line_bbox = _SMTPath(
-            d=SPT.bbox2path(*self._bbox()).d(),
-            fill=SW.utils.rgb(100,100,0,"%"),
+            d=svgpathtools.bbox2path(*self._bbox()).d(),
+            fill=svgwrite.utils.rgb(100,100,0,"%"),
             fill_opacity=self.canvas_opacity,
             is_bbox=True,
-            main_obj_id=line.id
+            main_obj_id=line.svgid
         )
         if self.canvas_visible: # why not called bbox_visible then??!!
             self._svg_list.append(line_bbox)
@@ -931,25 +941,20 @@ class _LineSeg(_View):
             self._svg_list.append(line)
         # Add the origin
         if self.origin_visible:
-            for elem in origin_elems(self, line.id):
+            for elem in origin_elems(self, line.svgid):
                 self._svg_list.append(elem)
     
     @property
     def thickness(self):
         return self._thickness
+    
     @thickness.setter
     def thickness(self, new):
         self._thickness = new
     
     # xmin, xmax, ymin, ymax
     def _bbox(self):
-        return SPT.Path(self._rect().d()).bbox()
-
-
-
-
-
-
+        return svgpathtools.Path(self._rect().d()).bbox()
 
 
 class VLineSeg(_LineSeg):
@@ -961,12 +966,12 @@ class VLineSeg(_LineSeg):
         # return atan2(self.y2 - self.y, self.x2 - self.x)
     # def _recty(self): return self.y - self.thickness*.5
     # def _rect(self):
-        # R = SE.Rect(self.x, self._recty(), hypot(self.x2-self.x, self.y2-self.y), self.thickness)
+        # R = svgelements.Rect(self.x, self._recty(), hypot(self.x2-self.x, self.y2-self.y), self.thickness)
         # R *= f"rotate({self.angle()}rad {self.x} {self.y})"
         # return R
     
     def _rect(self):
-        rect = SE.Rect(
+        rect = svgelements.Rect(
             # Rect(x, y, width, height, rx, ry, matrix, stroke, fill)
             self.x - self.thickness*.5, self.y, 
             self.thickness, self.length,
@@ -1014,7 +1019,7 @@ class HLineSeg(_LineSeg):
         super().__init__(**kwargs)
         
     def _rect(self):
-        rect = SE.Rect(
+        rect = svgelements.Rect(
             self.x,
             self.y - self.thickness*.5,
             # self.y,
@@ -1027,3 +1032,129 @@ class HLineSeg(_LineSeg):
         rect *= f"skew({self.skewx}, {self.skewy}, {self.x}, {self.y})"
         rect *= f"rotate({self.rotate}deg, {self.x}, {self.y})"
         return rect
+
+
+# Was beingt View ???
+class _SimplePointedCurve(_View):
+    """Quadratic Bezier Curve"""
+    def __init__(self,
+                 start_x, start_y,
+                 control_x, control_y,
+                 end_x, end_y,
+                 rotation=None,
+                 color=None,
+                 thickness=2,
+                 end_square_diagonal=1, # px?
+                 **kwargs):
+        super().__init__(self, **kwargs)
+        self.start_x = start_x
+        self.start_y = start_y
+        self.control_x = control_x
+        self.control_y = control_y
+        self.end_x = end_x
+        self.end_y = end_y
+        self.rotation = rotation or 0
+        self.color = color or svgwrite.utils.rgb(0, 0, 0, "%")
+        # This is the thickness of the middle of the curve.
+        self.thickness = thickness or 2
+        self._start_circle = self.end_circle = None
+        # This is the thickness of the end; i.e. the diagonal of the
+        # hypothetical square positioned with the right top corner at
+        # the reaching point of the upper bezier curve.
+        self.end_square_diagonal = end_square_diagonal
+        # The side of the end's hypothetical square
+        self.end_square_side = self.end_square_diagonal / sqrt(2)
+    
+    def _bbox(self):
+        return svgpathtools.Path(self._path().d()).bbox()
+    
+    def _rect(self):
+        pass
+    
+    def _path(self):
+        # upper bezier curve
+        upper_bezier_start = (self.start_x, self.start_y)
+        upper_bezier_ctrl = (self.control_x, self.control_y)
+        upper_bezier_end = (self.end_x, self.end_y)
+        # lower bezier curve
+        lower_bezier_start = (self.end_x - self.end_square_side,
+                              self.end_y + self.end_square_side)
+        lower_bezier_ctrl = (self.control_x, self.control_y + self.thickness)
+        lower_bezier_end = (self.start_x + self.end_square_side,
+                            self.start_y + self.end_square_side)
+        pen = svgelements.Move(end=svgelements.Point(upper_bezier_start))
+        upper_bezier = svgelements.QuadraticBezier(
+            start=svgelements.Point(upper_bezier_start),
+            control=svgelements.Point(upper_bezier_ctrl),
+            end=svgelements.Point(upper_bezier_end)
+        )
+        upper_end_to_lower_start_line = svgelements.Line(
+            start=svgelements.Point((self.end_x, self.end_y)),
+            end=svgelements.Point((self.end_x - self.end_square_side,
+                                   self.end_y + self.end_square_side))
+        )
+        lower_bezier = svgelements.QuadraticBezier(
+            start=svgelements.Point(lower_bezier_start),
+            control=svgelements.Point(lower_bezier_ctrl),
+            end=svgelements.Point(lower_bezier_end)
+        )
+        path = svgelements.Path(
+            pen,
+            upper_bezier,
+            
+            # svgelements.QuadraticBezier(
+            #     start=svgelements.Point(upper_bezier_end),
+            #     control=svgelements.Point(self.end_x + self.end_square_side,
+            #                               (self.end_y+self.end_square_side*2) - .7),
+            #     end=svgelements.Point(lower_bezier_start)
+            # ),
+            
+            upper_end_to_lower_start_line,
+            lower_bezier,
+            svgelements.Close()
+        )
+        
+        # self.end_circle = svgwrite.shapes.Circle(
+        #     center=(self.end_x - self.end_square_side / 2,
+        #             self.end_y + self.end_square_side / 2),
+        #     r=self.end_square_diagonal / 2 -.078,
+        #     stroke=svgwrite.utils.rgb(87, 78, 55),
+        #     fill=svgwrite.utils.rgb(87, 78, 55),
+        #     fill_opacity=.7,
+        #     stroke_width=_ORIGIN_LINE_THICKNESS
+        # )
+
+        path *= f"rotate({self.rotation}deg, {self.start_x}, {self.start_y})"
+        return path
+        
+    def pack_svg_list(self):
+        curve_path = _SMTPath(
+            id_class=self.__class__,
+            d=self._path().d(),
+            # stroke=svgwrite.utils.rgb(255, 0, 0),
+            fill=self.color,
+            # stroke_linecap="round",
+            # stroke_width=.2
+        )
+        curve_bbox = _SMTPath(
+            d=svgpathtools.bbox2path(*self._bbox()).d(),
+            fill=self.canvas_color,
+            fill_opacity=self.canvas_opacity,
+            is_bbox=True,
+            main_obj_id=curve_path.svgid)
+        if self.canvas_visible:
+            self._svg_list.append(curve_bbox)
+        if self.visible:
+            self._svg_list.append(curve_path)
+            
+            # self._svg_list.append(
+            #     svgwrite.shapes.Rect(insert=(self.end_x-self.end_square_side,
+            #                                  self.end_y),
+            #                          size=(self.end_square_side,
+            #                                self.end_square_side),
+            #                          stroke="none",
+            #                          fill=svgwrite.utils.rgb(87, 78, 55),
+            #                          fill_opacity=0.5),
+            # )
+            
+            # self._svg_list.append(self.end_circle)
