@@ -16,14 +16,13 @@ What is the issue that we're seeing that is motivating this decision or change?
 
 svgpathtools' scaled() method has a bug which deforms shapes. It offers however good bbox support.
 svgelements has unreliable bbox functionality, but transformations seem to be more safe than in pathtools.
-Bypass: apply transformations in svgelements and pass the d() to pathtools to get bboxes when needed.
 
 
 <!---
 What is the change that we're proposing and/or doing?
 -->
 # Decision
-
+Use all of them to apply transformations in svgelements and pass the d() to pathtools to get bboxes whenever needed.
 
 <!---
 What becomes easier or more difficult to do because of this change? (Consequences)
