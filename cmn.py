@@ -147,16 +147,17 @@ def set_slur(obj):              # obj = Note with closing slur point
     # breakpoint()
     mitte = (obj.head_char.right - open_note.head_char.left) / 2
     cx = open_note.x + mitte
-    cy = open_note.head_char.top - 30
+    cy = open_note.head_char.top - 50
     curve = _SimplePointedCurve(
         start_x=open_note.head_char.x + open_note.head_char.width / 2,
-        start_y=open_note.head_char.top - 2,
+        start_y=open_note.head_char.top - cfg.DESIRED_STAFF_SPACE_IN_PX / 2,
         control_x=cx, # ctrl_x
         control_y=cy,
         end_x=obj.head_char.x + obj.head_char.width / 2,
-        end_y=obj.head_char.top - 2,
-        end_square_diagonal=.7,
-        thickness=3.5
+        end_y=obj.head_char.top - cfg.DESIRED_STAFF_SPACE_IN_PX / 2,
+        end_square_diagonal=1.7,
+        thickness=4,
+        rotation=0
     )
     open_note.root().extend_content(curve)
     # open_note.slur = curve
@@ -226,13 +227,13 @@ def first_clock_idx(l):
         if isinstance(x, S.Clock):
             return i
 
-def _map_durs_to_count(valued_objs_list):
-    durs_list = [obj.dur for obj in valued_objs_list]
+def _map_durs_to_count(clocks_list):
+    durs_list = [obj.dur for obj in clocks_list]
     return {dur: durs_list.count(dur) for dur in set(durs_list)}
 
 # Note that durations MUST BE strings!
 def _find_ref_dur(durs_to_count):
-    """Returns the dur with the heighest number of appearances."""
+    """Returns the dur with the heighest number of occurrences."""
     return max(durs_to_count, key=durs_to_count.get)
 
 def get_non_clocked_space(staff, right_padding_dict):
@@ -253,18 +254,20 @@ def get_clocked_space_and_padding(staff, right_padding_dict):
         # get the remaining space for valued objs
         time_objs_space = staff.width - non_clocked_space
         # compute ideal widths for objs with durations (notes and rests and chords)
-        time_objs = _Clock.get_clock_objs(staff)
-        durs_to_count = _map_durs_to_count(time_objs)
+        clocks = _Clock.get_clock_objs(staff)
+        if not clocks:
+            return ([], right_padding_dict)
+        durs_to_count = _map_durs_to_count(clocks)
         ref_dur = _find_ref_dur(durs_to_count)
         # Wieviele ref_durs konnten wir insgesamt haben?
         ref_dur_count = sum([v * _dur_ref_ratio(k, ref_dur) for k, v in durs_to_count.items()])
         # ideal width for the reference dur
         # See Ross page 73
         unit_of_space = time_objs_space / ref_dur_count
-        shortest_time_obj = _Clock.shortest(time_objs)
+        shortest_time_obj = _Clock.shortest(clocks)
         shortest_time_obj_width = None
         clock_space_list = []
-        for obj in time_objs:
+        for obj in clocks:
             space = unit_of_space * _dur_ref_ratio(obj.dur, ref_dur) - obj.width
             clock_space_list.append(space)
             if obj is shortest_time_obj:
@@ -765,11 +768,43 @@ if __name__ == "__main__":
     #              y=four3.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
     #              )
     
-    render(one,
-           # two1, two2,
-           # three1, three2, three3,
-           # four1,four2,four3,four4,
-           path="/tmp/test.svg")
+    # render(one,
+    #        # two1, two2,
+    #        # three1, three2, three3,
+    #        # four1,four2,four3,four4,
+    #        path="/tmp/test.svg")
+
+    render(
+        Staff(content=[
+            Clef(("g", 4,"")),
+            SimpleTimeSig(num=4, denom=4),
+            Note(pitch=("c",5,""),dur="h",slur=SlurOpen(id="bar1")),
+            Note(pitch=("d",5,""),dur="h"),
+            Barline(),
+            Note(pitch=("e",5,""),dur="w"),
+            Barline(),
+            Note(pitch=("f",5,""),dur="h"),
+            Note(pitch=("e",5,""),dur="h"),
+            Barline(),
+            Note(pitch=("d",5,""),dur="h",slur=SlurClose(id="bar1")),
+            Note(pitch=("d",5,""),dur="h"),
+            Barline(),
+            Note(pitch=("e",5,""),dur="h",slur=SlurOpen(id="bar5")),
+            Note(pitch=("f",5,""),dur="h"),
+            Barline(),
+            Note(pitch=("g",5,""),dur="h"),
+            Note(pitch=("f",5,""),dur="h"),
+            Barline(),
+            Note(pitch=("e",5,""),dur="h"),
+            Note(pitch=("d",5,""),dur="h"),
+            Barline(),
+            Note(pitch=("c",5,""),dur="w",slur=SlurClose(id="bar5")),
+            FinalBarline()
+        ],
+              width=mm_to_px(270), x=20, y=100),
+        path="/tmp/test.svg"
+    )
+
     
 #     staff = Staff(content=[
 #         Note(pitch=("g", 4, ""), dur="e",
