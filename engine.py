@@ -19,8 +19,7 @@ from math import atan2, hypot, sqrt
 ##### Font
 
 SVG_NAMESPACE = {"ns": "http://www.w3.org/2000/svg"}
-# _fontsdict = {}
-# installed_fonts = []
+
 def install_font1(path, overwrite=False):
     name, ext = os.path.splitext(os.path.basename(path))
     if os.path.exists(f"./fonts/json/{name}.json") and not overwrite:
@@ -63,8 +62,11 @@ def _load_fonts():
 # install_font1("./fonts/svg/haydn-11.svg",1)
 _load_fonts()
 
-def glyph_names(font):
+def get_glyph_names(font):
     return loaded_fonts_dict[font].keys()
+
+def find_glyphs(font_name, cond):
+    return [glyph for glyph in get_glyph_names(font_name) if cond(glyph)]
 
 def get_glyph(name, font):
     """Returns ...
