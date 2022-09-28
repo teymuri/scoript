@@ -9,16 +9,16 @@ if SMT_DIR not in sys.path:
 import random
 import cfg
 from engine import (RuleTable, render, HForm, mm_to_px, HLineSeg,
-                    Char, CMN, VLineSeg, _SimplePointedCurve)
+                    Char, CMN, VLineSeg, _SimplePointedCurve,
+                    find_glyphs)
 from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline, _Clock, is_last_barline_on_staff,
-                   SlurOpen, SlurClose)
+                   SlurOpen, SlurClose, Rest)
 from random import randint, choice
 import score as S
 import copy 
 
 
-
-cfg.CANVAS_VISIBLE = cfg.ORIGIN_VISIBLE = False
+# cfg.CANVAS_VISIBLE = cfg.ORIGIN_VISIBLE = False
 
 def _treble_pitch_offset_from_staff_bottom(obj):
     return obj.current_ref_glyph_bottom() + {
@@ -115,7 +115,7 @@ def is_note(x):
 
 # Setting noteheads
 def set_notehead_char(obj):
-    """setting note head chars + positioning vertically..."""
+    """setting notehead chars & vertical positioning..."""
     obj.head_char = Char(name={
         "w": "noteheads.s0",
         "h": "noteheads.s1",
@@ -124,7 +124,15 @@ def set_notehead_char(obj):
     }[obj.dur])
     obj.head_char.y = _pitch_vertical_pos(obj)
 
+def is_rest(obj):
+    return isinstance(obj, Rest)
 
+def set_rest_char(obj):
+    """setting rest chars..."""
+    obj.char = Char(name={
+        "h": "rests.1"
+    }[obj.dur])
+    obj.char.y = obj.current_ref_glyph_top() + cfg.DESIRED_STAFF_HEIGHT_IN_PX / 2
 
 def isstem(o): return isinstance(o, S.Stem)
 def set_stem_line(note):
@@ -279,7 +287,7 @@ def get_clocked_space_and_padding(staff, right_padding_dict):
 # Nothing should be added to the notes after this stage which would
 # change it's dimensions
 def horizontal_spacing(staff):
-    """horizontal spacing"""
+    """horizontal spacing..."""
     clock_space_list, right_padding_dict = get_clocked_space_and_padding(staff, NON_CLOCKED_RIGHT_PADDING)
     if all([isinstance(x, Note) for x in staff.content]):
         for obj, width in zip(staff.content, clock_space_list):
@@ -288,7 +296,7 @@ def horizontal_spacing(staff):
     else:
         time_obj_idx = 0
         for obj in staff.content:
-            if isinstance(obj, Note):
+            if isinstance(obj, _Clock):
                 obj.width += clock_space_list[time_obj_idx]
                 time_obj_idx += 1
                 obj._width_locked = True
@@ -363,8 +371,6 @@ def flag(note):
         # print(note.stem_graver.y)
         note.extend_content(S.E.Char(name="flags.d4",y=note.stem_graver.bottom,x=note.x+.5,
         origin_visible=1))
-# S.E.CMN.add(flag, isnote, "Flags...")
-# print(S.E._glyph_names("haydn-11"))
 
 # def bm(n):
     # if n.stem_graver:
@@ -387,7 +393,7 @@ CMN.unsafeadd(set_simple_timesig_chars,
               is_simple_timesig)
 
 CMN.unsafeadd(set_notehead_char, is_note)
-# CMN.unsafeadd(notehead_vertical_pos, is_note, "note vertical position")
+CMN.unsafeadd(set_rest_char, is_rest)
 
 CMN.unsafeadd(set_keysig_char_list, is_keysig)
 
@@ -410,6 +416,7 @@ CMN.unsafeadd(horizontal_spacing,
 
 CMN.unsafeadd(StaffLines.make,
               lambda obj: is_note(obj) or \
+              is_rest(obj) or \
               isclef(obj) or \
               is_simple_timesig(obj) or \
               is_accidental(obj) or \
@@ -765,29 +772,30 @@ if __name__ == "__main__":
     #              y=four3.y + cfg.DESIRED_STAFF_HEIGHT_IN_PX * 2
     #              )
     
-    render(one,
-           # two1, two2,
-           # three1, three2, three3,
-           # four1,four2,four3,four4,
-           path="/tmp/test.svg")
+    # render(one,
+    #        # two1, two2,
+    #        # three1, three2, three3,
+    #        # four1,four2,four3,four4,
+    #        path="/tmp/test.svg")
     
-#     staff = Staff(content=[
-#         Note(pitch=("g", 4, ""), dur="e",
-#              slur=SlurOpen(id="x")
-#              ),
-#         Note(pitch=("f", 5, ""), dur="e",
-#              ),
-#         Accidental(pitch=("f", 5, "#")),
-#         Note(pitch=("f", 5, ""), dur="e",
-# ),
-#         Note(pitch=("f", 5, ""), dur="e",
-# ),
-#         Note(pitch=("f", 5, ""), dur="e",
-# ),
-#         Note(pitch=("f", 4, ""), dur="e",
-#              slur=SlurClose(id="x")
-#              ),
-#         Barline()
-#     ], x=40, y=100, width=mm_to_px(100))
-#     render(staff,
-#            path="/tmp/test.svg")
+    staff = Staff(content=[
+        Note(pitch=("g", 4, ""), dur="e",
+             slur=SlurOpen(id="x")
+             ),
+        Note(pitch=("f", 5, ""), dur="e",
+             ),
+        Accidental(pitch=("f", 5, "#")),
+        Rest(dur="h"),
+        Note(pitch=("f", 5, ""), dur="e",
+),
+        Note(pitch=("f", 5, ""), dur="e",
+),
+        Note(pitch=("f", 5, ""), dur="e",
+),
+        Note(pitch=("f", 4, ""), dur="e",
+             slur=SlurClose(id="x")
+             ),
+        Barline()
+    ], x=40, y=100, width=mm_to_px(100))
+    render(staff,
+           path="/tmp/test.svg")

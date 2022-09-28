@@ -166,10 +166,28 @@ class OpenBeam(E.HLineSeg):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+
+class Rest(_Clock, SForm):
+    
+    def __init__(self, dur, **kwargs):
+        _Clock.__init__(self, dur)
+        SForm.__init__(self, **kwargs)
+        self._char = None
+
+    @property
+    def char(self):
+        return self._char
+
+    @char.setter
+    def char(self, new):
+        self._char = new
+        self.extend_content(self._char)
+        
+        
 class Note(SForm, _Clock):
     
     def __init__(self,
-                 head_char=None,
+                 head_char=None, # ???
                  stem_graver=None,
                  obeam_graver=None,
                  cbeam_graver=None,
