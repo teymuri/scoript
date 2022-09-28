@@ -18,7 +18,7 @@ import score as S
 import copy 
 
 
-# cfg.CANVAS_VISIBLE = cfg.ORIGIN_VISIBLE = False
+cfg.CANVAS_VISIBLE = cfg.ORIGIN_VISIBLE = False
 
 def _treble_pitch_offset_from_staff_bottom(obj):
     return obj.current_ref_glyph_bottom() + {
@@ -292,7 +292,7 @@ def get_clocked_space_and_padding(staff, right_padding_dict):
 def horizontal_spacing(staff):
     """horizontal spacing..."""
     clock_space_list, right_padding_dict = get_clocked_space_and_padding(staff, NON_CLOCKED_RIGHT_PADDING)
-    if all([isinstance(x, Note) for x in staff.content]):
+    if staff.is_clocks_only():
         for obj, width in zip(staff.content, clock_space_list):
             obj.width += width
             obj._width_locked = True
@@ -794,7 +794,7 @@ if __name__ == "__main__":
             Note(pitch=("e",5,""),dur="h"),
             Barline(),
             Note(pitch=("d",5,""),dur="h",slur=SlurClose(id="bar1")),
-            Note(pitch=("d",5,""),dur="h"),
+            Rest(dur="h"),
             Barline(),
             Note(pitch=("e",5,""),dur="h",slur=SlurOpen(id="bar5")),
             Note(pitch=("f",5,""),dur="h"),
@@ -813,24 +813,24 @@ if __name__ == "__main__":
     )
 
     
-    staff = Staff(content=[
-        Note(pitch=("g", 4, ""), dur="e",
-             slur=SlurOpen(id="x")
-             ),
-        Note(pitch=("f", 5, ""), dur="e",
-             ),
-        Accidental(pitch=("f", 5, "#")),
-        Rest(dur="h"),
-        Note(pitch=("f", 5, ""), dur="e",
-),
-        Note(pitch=("f", 5, ""), dur="e",
-),
-        Note(pitch=("f", 5, ""), dur="e",
-),
-        Note(pitch=("f", 4, ""), dur="e",
-             slur=SlurClose(id="x")
-             ),
-        Barline()
-    ], x=40, y=100, width=mm_to_px(100))
-    render(staff,
-           path="/tmp/test.svg")
+#     staff = Staff(content=[
+#         Note(pitch=("g", 4, ""), dur="e",
+#              slur=SlurOpen(id="x")
+#              ),
+#         Note(pitch=("f", 5, ""), dur="e",
+#              ),
+#         Accidental(pitch=("f", 5, "#")),
+#         Rest(dur="h"),
+#         Note(pitch=("f", 5, ""), dur="e",
+# ),
+#         Note(pitch=("f", 5, ""), dur="e",
+# ),
+#         Note(pitch=("f", 5, ""), dur="e",
+# ),
+#         Note(pitch=("f", 4, ""), dur="e",
+#              slur=SlurClose(id="x")
+#              ),
+#         Barline()
+#     ], x=40, y=100, width=mm_to_px(100))
+#     render(staff,
+#            path="/tmp/test.svg")

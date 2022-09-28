@@ -90,6 +90,11 @@ class Staff(HForm):
     def __init__(self, **kwargs):
         HForm.__init__(self, **kwargs)
 
+    def is_clocks_only(self):
+        """Returns true if the content of the staff is made up of
+        clocks only."""
+        return all([isinstance(x, _Clock) for x in self.content])
+
 
 class Barline(SForm):
     # Gould, page 38: The barline is thicker than a stave-line ...
