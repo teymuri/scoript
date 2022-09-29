@@ -295,20 +295,31 @@ def horizontal_spacing(staff):
     if staff.is_clocks_only():
         for obj, width in zip(staff.content, clock_space_list):
             obj.width += width
-            obj._width_locked = True
+            # obj._width_locked = True
     else:
         time_obj_idx = 0
         for obj in staff.content:
             if isinstance(obj, _Clock):
                 obj.width += clock_space_list[time_obj_idx]
                 time_obj_idx += 1
-                obj._width_locked = True
+                # obj._width_locked = True
             else:
                 # A barline at the end of the staff doesn't need it's
                 # right margin.
                 if not (isinstance(obj, (FinalBarline, Barline)) and obj.is_last_child()) and not isinstance(obj, _SimplePointedCurve):
                     obj.width += right_padding_dict.get(type(obj), 0)
-    
+                    
+    for obj in staff.content:
+        if isinstance(obj, _Clock) and obj.dur == "w" and isinstance(obj.older_sibling(), Barline) and isinstance(obj.younger_sibling(), (Barline, FinalBarline)):
+            # breakpoint()
+            barlines_diff = obj.younger_sibling().x - obj.older_sibling().x
+            # breakpoint()
+            print("B", obj.x)
+            obj.x -= 50
+            print("A", obj.x)
+            # obj.head_char.x = obj.head_char.x + (barlines_diff/2 - obj.x)
+            # breakpoint()
+
 
 
 
@@ -353,7 +364,7 @@ def set_barline_char(obj):
                         thickness=Barline.THICKNESS + 1,
                         y=obj.current_ref_glyph_top() - StaffLines.THICKNESS * .5,
                         # a barline is normally used after a note or a rest
-                        x=obj.direct_older_sibling().right if obj.direct_older_sibling() else obj.parent().x,
+                        x=obj.older_sibling().right if obj.older_sibling() else obj.parent().x,
                         canvas_visible=True,
                         canvas_opacity=0.1,
                         visible=True)
@@ -781,6 +792,7 @@ if __name__ == "__main__":
     #        # four1,four2,four3,four4,
     #        path="/tmp/test.svg")
 
+    # bartok
     render(
         Staff(content=[
             Clef(("g", 4,"")),
@@ -788,7 +800,7 @@ if __name__ == "__main__":
             Note(pitch=("c",5,""),dur="h",slur=SlurOpen(id="bar1")),
             Note(pitch=("d",5,""),dur="h"),
             Barline(),
-            Note(pitch=("e",5,""),dur="w"),
+            Note(pitch=("e",5,""),dur="w", canvas_visible=True, origin_visible=1),
             Barline(),
             Note(pitch=("f",5,""),dur="h"),
             Note(pitch=("e",5,""),dur="h"),

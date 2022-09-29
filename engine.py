@@ -310,11 +310,19 @@ class _SMTObject(_SVGIdentifier):
     def siblings(self):
         return self.parent().content
     
-    def direct_older_sibling(self):
+    def older_sibling(self):
+        """Returns the direct older sibling of this object from
+        parent's content."""
         siblings = self.siblings()
         for i, obj in enumerate(siblings):
             if obj is self and i != 0:
                 return siblings[i - 1]
+
+    def younger_sibling(self):
+        siblings = self.siblings()
+        for i, obj in enumerate(siblings):
+            if obj is self and i != len(siblings) - 1:
+                return siblings[i + 1]
 
     def index(self):
         for i, x in enumerate(self.siblings()):
@@ -420,8 +428,8 @@ class _Canvas(_SMTObject):
                  # locked if given.
                  width=None,
                  height=None,
-                 canvas_visible=True,
-                 origin_visible=True,
+                 canvas_visible=False,
+                 origin_visible=False,
                  **kwargs):
         super().__init__(**kwargs)
         self.skewx = skewx
@@ -432,9 +440,9 @@ class _Canvas(_SMTObject):
         self._is_hlineup_head = False
         self.rotate=rotate
         self.canvas_opacity = canvas_opacity or 0.3
-        self.canvas_visible = cfg.CANVAS_VISIBLE and canvas_visible
+        self.canvas_visible = cfg.CANVAS_VISIBLE or canvas_visible
         self.canvas_color = canvas_color or svgwrite.utils.rgb(20, 20, 20, "%")
-        self.origin_visible = cfg.ORIGIN_VISIBLE and origin_visible
+        self.origin_visible = cfg.ORIGIN_VISIBLE or origin_visible
         self._xscale = xscale
         self._yscale = yscale
         # Permit zeros for x and y. xy will be locked if supplied as arguments.
@@ -482,7 +490,7 @@ class _Font:
 
 
 class _View(_Canvas):
-    """A view is a something which is drawn on a canvas and which can
+    """A view is something which is drawn on a canvas and which can
     be observed on its own. This is in contrast to a form which is a
     container for other objects and can not be observed on it's own
     (you can see it's canvas, but not the form itself!).
