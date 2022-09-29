@@ -121,7 +121,9 @@ def set_notehead_char(obj):
         "h": "noteheads.s1",
         "q": "noteheads.s2",
         "e": "noteheads.s2"
-    }[obj.dur])
+    }[obj.dur],
+                         canvas_visible=False,
+                         origin_visible=False)
     obj.head_char.y = _pitch_vertical_pos(obj)
 
 def is_rest(obj):
@@ -292,6 +294,7 @@ def get_clocked_space_and_padding(staff, right_padding_dict):
 def horizontal_spacing(staff):
     """horizontal spacing..."""
     clock_space_list, right_padding_dict = get_clocked_space_and_padding(staff, NON_CLOCKED_RIGHT_PADDING)
+    # braucht nicht das if, else reicht
     if staff.is_clocks_only():
         for obj, width in zip(staff.content, clock_space_list):
             obj.width += width
@@ -301,25 +304,22 @@ def horizontal_spacing(staff):
         for obj in staff.content:
             if isinstance(obj, _Clock):
                 obj.width += clock_space_list[time_obj_idx]
+                obj._width_locked = 1
+                # handle single note bars 
+                if obj.dur == "w" and isinstance(obj.older_sibling(), Barline) and isinstance(obj.younger_sibling(), (Barline, FinalBarline)):
+                    bar_half_width = (obj.width + obj.older_sibling().width - obj.older_sibling().char.width) / 2
+                    bar_center = obj.older_sibling().left + bar_half_width
+                    obj.head_char.left += (obj.width/2)
+                    obj.head_char.left -= obj.head_char.width/2
+                    obj.head_char.left -= (obj.older_sibling().width - obj.older_sibling().char.width) / 2
+                    
                 time_obj_idx += 1
-                # obj._width_locked = True
             else:
                 # A barline at the end of the staff doesn't need it's
                 # right margin.
                 if not (isinstance(obj, (FinalBarline, Barline)) and obj.is_last_child()) and not isinstance(obj, _SimplePointedCurve):
                     obj.width += right_padding_dict.get(type(obj), 0)
                     
-    for obj in staff.content:
-        if isinstance(obj, _Clock) and obj.dur == "w" and isinstance(obj.older_sibling(), Barline) and isinstance(obj.younger_sibling(), (Barline, FinalBarline)):
-            # breakpoint()
-            barlines_diff = obj.younger_sibling().x - obj.older_sibling().x
-            # breakpoint()
-            print("B", obj.x)
-            obj.x -= 50
-            print("A", obj.x)
-            # obj.head_char.x = obj.head_char.x + (barlines_diff/2 - obj.x)
-            # breakpoint()
-
 
 
 
@@ -800,7 +800,10 @@ if __name__ == "__main__":
             Note(pitch=("c",5,""),dur="h",slur=SlurOpen(id="bar1")),
             Note(pitch=("d",5,""),dur="h"),
             Barline(),
-            Note(pitch=("e",5,""),dur="w", canvas_visible=True, origin_visible=1),
+            Note(pitch=("e",5,""),dur="w", 
+                 canvas_visible=False, 
+                 origin_visible=False
+                ),
             Barline(),
             Note(pitch=("f",5,""),dur="h"),
             Note(pitch=("e",5,""),dur="h"),
@@ -817,8 +820,10 @@ if __name__ == "__main__":
             Note(pitch=("e",5,""),dur="h"),
             Note(pitch=("d",5,""),dur="h"),
             Barline(),
-            Note(pitch=("c",5,""),dur="w",slur=SlurClose(id="bar5")),
-            FinalBarline()
+            Note(pitch=("c",5,""),dur="w",slur=SlurClose(id="bar5"),
+                 canvas_visible=False,
+                 origin_visible=False),
+            FinalBarline(canvas_visible=False)
         ],
               width=mm_to_px(270), x=20, y=100),
         path="/tmp/test.svg"
