@@ -7,7 +7,7 @@ Conveniece objects for creating music
 
 import engine as E
 import cfg
-from engine import _SMTObject, VLineSeg, HLineSeg, SForm, HForm, VForm, Char, _SimplePointedCurve
+from engine import _SMTObject, VLine, HLine, SForm, HForm, VForm, Char, _SimplePointedCurve
 
 
 
@@ -75,7 +75,7 @@ class StaffLines(VForm):
         """drawing staff lines..."""
         for i in range(5):
             y = i * cfg.DESIRED_STAFF_SPACE_IN_PX + obj.current_ref_glyph_top()
-            line = HLineSeg(length=obj.width,
+            line = HLine(length=obj.width,
                             thickness=StaffLines.THICKNESS,
                             y=y,
                             x=obj.left,
@@ -120,14 +120,14 @@ class FinalBarline(HForm):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.thin = VLineSeg(
+        self.thin = VLine(
             length=self.REF_GLYPH_HEIGHT + StaffLines.THICKNESS,
             thickness=Barline.THICKNESS
         )
         # The thin barline is placed 1/2 staff spaces before the thick one
         # (Gould, p.39)
         self.space = SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX * 0.5)
-        self.thick = VLineSeg(
+        self.thick = VLine(
             length=self.REF_GLYPH_HEIGHT + StaffLines.THICKNESS,
             # The thick final line is of beam thickness (Gould, p. 39).
             thickness=3         # should be decided, don't have beams yet!
@@ -155,7 +155,7 @@ class KeySig(HForm):
         self.extend_content(*self._char_list)
 
 
-class Stem(VLineSeg):
+class Stem(VLine):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Die Länge der Notenhälse beträgt in der Regel 3
@@ -167,7 +167,7 @@ class Stem(VLineSeg):
         self.thickness = StaffLines.THICKNESS
         self.endxr = self.endyr = 1.35
 
-class OpenBeam(E.HLineSeg):
+class OpenBeam(E.HLine):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

@@ -8,8 +8,8 @@ if SMT_DIR not in sys.path:
 
 import random
 import cfg
-from engine import (RuleTable, render, HForm, mm_to_px, HLineSeg,
-                    Char, CMN, VLineSeg, _SimplePointedCurve,
+from engine import (RuleTable, render, HForm, mm_to_px, HLine,
+                    Char, CMN, VLine, _SimplePointedCurve,
                     find_glyphs)
 from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline, _Clock, is_last_barline_on_staff,
                    SlurOpen, SlurClose, Rest)
@@ -307,11 +307,12 @@ def horizontal_spacing(staff):
                 obj._width_locked = 1
                 # handle single note bars 
                 if obj.dur == "w" and isinstance(obj.older_sibling(), Barline) and isinstance(obj.younger_sibling(), (Barline, FinalBarline)):
-                    bar_half_width = (obj.width + obj.older_sibling().width - obj.older_sibling().char.width) / 2
-                    bar_center = obj.older_sibling().left + bar_half_width
+                    # bar_half_width = (obj.width + obj.older_sibling().width - obj.older_sibling().char.width) / 2
+                    # bar_center = obj.older_sibling().left + bar_half_width
                     obj.head_char.left += (obj.width/2)
                     obj.head_char.left -= obj.head_char.width/2
                     obj.head_char.left -= (obj.older_sibling().width - obj.older_sibling().char.width) / 2
+                    # vline = 
                     
                 time_obj_idx += 1
             else:
@@ -339,13 +340,13 @@ def setbm(l):
     # c=[x for x in l.content if isnote(x) and x.close_beam][0]
     # d=c.stem_graver.right -o.stem_graver.left
     for a in o:
-        a.obeam_graver = S.E.HLineSeg(length=a.width,thickness=5,
+        a.obeam_graver = S.E.HLine(length=a.width,thickness=5,
         x=a.left,
         y=a.stem_graver.bottom,
         # rotate=45,
         )
-    # o.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
-    # c.append(S.E.HLineSeg(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
+    # o.append(S.E.HLine(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
+    # c.append(S.E.HLine(length=o.width,thickness=5,x=o.left, y=o.stem_graver.bottom))
 
 
 
@@ -355,12 +356,12 @@ def skew(stave):
     print(stave.skewx)
     stave.skewx = 50
     print(stave.skewx)
-def ishline(x): return isinstance(x,S.E.HLineSeg)
+def ishline(x): return isinstance(x,S.E.HLine)
 def is_barline(x): return isinstance(x, Barline)
 
 def set_barline_char(obj):
     # obj is a barline object
-    obj.char = VLineSeg(length=obj._abstract_staff_height + StaffLines.THICKNESS,
+    obj.char = VLine(length=obj._abstract_staff_height + StaffLines.THICKNESS,
                         thickness=Barline.THICKNESS + 1,
                         y=obj.current_ref_glyph_top() - StaffLines.THICKNESS * .5,
                         # a barline is normally used after a note or a rest
@@ -389,7 +390,7 @@ def flag(note):
 # def bm(n):
     # if n.stem_graver:
         # n.stem_graver.length -= 10
-        # n.extend_content(S.E.HLineSeg(length=10, thickness=5, y=n.stem_graver.bottom, skewy=-0, endxr=1,endyr=.5))
+        # n.extend_content(S.E.HLine(length=10, thickness=5, y=n.stem_graver.bottom, skewy=-0, endxr=1,endyr=.5))
 
 
 # S.E.CMN.add(bm, isnote, "beams")
@@ -799,9 +800,9 @@ if __name__ == "__main__":
             SimpleTimeSig(num=4, denom=4),
             Note(pitch=("c",5,""),dur="h",slur=SlurOpen(id="bar1")),
             Note(pitch=("d",5,""),dur="h"),
-            Barline(),
+            Barline(canvas_visible=True),
             Note(pitch=("e",5,""),dur="w", 
-                 canvas_visible=False, 
+                 canvas_visible=True, 
                  origin_visible=False
                 ),
             Barline(),
@@ -821,33 +822,36 @@ if __name__ == "__main__":
             Note(pitch=("d",5,""),dur="h"),
             Barline(),
             Note(pitch=("c",5,""),dur="w",slur=SlurClose(id="bar5"),
-                 canvas_visible=False,
+                 canvas_visible=True,
                  origin_visible=False),
-            FinalBarline(canvas_visible=False)
+            FinalBarline(canvas_visible=True)
         ],
               width=mm_to_px(270), x=20, y=100),
         path="/tmp/test.svg"
     )
 
     
-#     staff = Staff(content=[
-#         Note(pitch=("g", 4, ""), dur="e",
-#              slur=SlurOpen(id="x")
-#              ),
-#         Note(pitch=("f", 5, ""), dur="e",
-#              ),
-#         Accidental(pitch=("f", 5, "#")),
-#         Rest(dur="h"),
-#         Note(pitch=("f", 5, ""), dur="e",
-# ),
-#         Note(pitch=("f", 5, ""), dur="e",
-# ),
-#         Note(pitch=("f", 5, ""), dur="e",
-# ),
-#         Note(pitch=("f", 4, ""), dur="e",
-#              slur=SlurClose(id="x")
-#              ),
-#         Barline()
-#     ], x=40, y=100, width=mm_to_px(100))
-#     render(staff,
-#            path="/tmp/test.svg")
+    # staff = Staff(content=[
+    #     Note(pitch=("g", 4, ""), dur="w",
+    #          canvas_visible=True,
+    #          # slur=SlurOpen(id="x")
+    #         ),
+    #     Barline(canvas_visible=True,),
+    #     Note(pitch=("f", 5, ""), dur="w",canvas_visible=True,),
+    #     Barline(canvas_visible=True,),
+    #     Accidental(pitch=("f", 5, "#")),
+    #     # Rest(dur="h"),
+    #     Note(pitch=("f", 5, ""), dur="w",canvas_visible=True,),
+    #     Barline(canvas_visible=True,),
+    #     Note(pitch=("f", 5, ""), dur="w",canvas_visible=True,),
+    #     Barline(canvas_visible=True,),
+    #     Note(pitch=("f", 5, ""), dur="w",canvas_visible=True,),
+    #     Barline(canvas_visible=True,),
+    #     Note(pitch=("f", 4, ""), dur="w",
+    #          canvas_visible=True,
+    #          # slur=SlurClose(id="x")
+    #         ),
+    #     Barline(canvas_visible=True,)
+    # ], x=40, y=100, width=mm_to_px(100))
+    # render(staff,
+    #        path="/tmp/test.svg")

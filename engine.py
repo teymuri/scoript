@@ -913,7 +913,7 @@ class VForm(_Form):
             anc.refresh_verticals()
         
 
-class _LineSeg(_View):
+class _Line(_View):
     """Angle in degrees
     https://github.com/meerk40t/svgelements/issues/102
     """
@@ -967,7 +967,7 @@ class _LineSeg(_View):
         return svgpathtools.Path(self._rect().d()).bbox()
 
 
-class VLineSeg(_LineSeg):
+class VLine(_Line):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         
@@ -1016,14 +1016,14 @@ class VLineSeg(_LineSeg):
     # def query_height(self): return self.length
     # def query_bottom(self): return self.y + self.length
     # def query_top(self): return self.y
-    # @_LineSeg.length.setter
+    # @_Line.length.setter
     # def length(self, new):
         # self._length = new
         # self.refresh_verticals()
         # for a in reversed(self.ancestors):
             # a.refresh_verticals()
 
-class HLineSeg(_LineSeg):
+class HLine(_Line):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
