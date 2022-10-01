@@ -359,6 +359,7 @@ def ishline(x): return isinstance(x,S.E.HLine)
 def is_barline(x): return isinstance(x, Barline)
 
 def set_barline_char(obj):
+    """setting barline char..."""
     # obj is a barline object
     obj.char = VLine(length=obj._abstract_staff_height + StaffLines.THICKNESS,
                         thickness=Barline.THICKNESS + 1,
@@ -797,7 +798,7 @@ if __name__ == "__main__":
     # bartok
     render(
         Staff(domain="treble", content=[
-            SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX),
+            SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX*.5),
             Clef(("g", 4,"")),
             SimpleTimeSig(num=4, denom=4),
             Note(pitch=("c",5,""),dur="h",slur=SlurOpen(id="bar1")),
@@ -832,7 +833,7 @@ if __name__ == "__main__":
               width=mm_to_px(270), x=20, y=100),
         # lh
         Staff(domain="bass", content=[
-            SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX),
+            SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX*.5),
             Clef(("f", 4,"")),
             SimpleTimeSig(num=4, denom=4),
             Note(pitch=("c",3,""),dur="h",slur=SlurOpen(id="bar12")),
