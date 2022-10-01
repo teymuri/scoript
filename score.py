@@ -5,9 +5,9 @@ Conveniece objects for creating music
 """
 
 
-import engine as E
+import core as E
 import cfg
-from engine import _SMTObject, VLine, HLine, SForm, HForm, VForm, Char, _SimplePointedCurve
+from core import _SMTObject, VLine, HLine, SForm, HForm, VForm, Char, _SimplePointedCurve
 
 
 

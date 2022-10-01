@@ -3,11 +3,11 @@ everywhere!
 
 """
 
-import engine
+import core
 
 
-DESIRED_STAFF_HEIGHT_IN_PX = engine.mm_to_px(engine.GOULD_STAFF_HEIGHTS_IN_MM[0])
-DESIRED_STAFF_SPACE_IN_PX = engine.mm_to_px(engine.GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
+DESIRED_STAFF_HEIGHT_IN_PX = core.mm_to_px(core.GOULD_STAFF_HEIGHTS_IN_MM[0])
+DESIRED_STAFF_SPACE_IN_PX = core.mm_to_px(core.GOULD_STAFF_HEIGHTS_IN_MM[0] / 4)
 
 CANVAS_VISIBLE = True
 ORIGIN_VISIBLE = True

@@ -8,7 +8,7 @@ if SMT_DIR not in sys.path:
 
 import random
 import cfg
-from engine import (RuleTable, render, HForm, mm_to_px, HLine,
+from core import (RuleTable, render, HForm, mm_to_px, HLine,
                     Char, CMN, VLine, _SimplePointedCurve,
                     find_glyphs, SForm)
 from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline, _Clock, is_last_barline_on_staff,
@@ -830,6 +830,40 @@ if __name__ == "__main__":
             FinalBarline(canvas_visible=False)
         ],
               width=mm_to_px(270), x=20, y=100),
+        # lh
+        Staff(domain="bass", content=[
+            SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX),
+            Clef(("f", 4,"")),
+            SimpleTimeSig(num=4, denom=4),
+            Note(domain="bass", pitch=("c",3,""),dur="h",slur=SlurOpen(id="bar12")),
+            Note(pitch=("d",5,""),dur="h"),
+            Barline(id="xxx",canvas_visible=False),
+            Note(pitch=("e",5,""),dur="w", 
+                 canvas_visible=False, 
+                 origin_visible=False,
+                 id="foo"
+                ),
+            Barline(),
+            Note(pitch=("f",5,""),dur="h"),
+            Note(pitch=("e",5,""),dur="h"),
+            Barline(),
+            Note(pitch=("d",5,""),dur="h",slur=SlurClose(id="bar12")),
+            Rest(dur="h"),
+            Barline(),
+            Note(pitch=("e",5,""),dur="h",slur=SlurOpen(id="bar52")),
+            Note(pitch=("f",5,""),dur="h"),
+            Barline(),
+            Note(pitch=("g",5,""),dur="h"),
+            Note(pitch=("f",5,""),dur="h"),
+            Barline(),
+            Note(pitch=("e",5,""),dur="h"),
+            Note(pitch=("d",5,""),dur="h"),
+            Barline(),
+            Note(pitch=("c",5,""),dur="w",slur=SlurClose(id="bar52"),
+                 canvas_visible=False,
+                 origin_visible=False),
+            FinalBarline(canvas_visible=False)
+        ], width=mm_to_px(270), x=20, y=200),
         path="/tmp/test.svg"
     )
 
