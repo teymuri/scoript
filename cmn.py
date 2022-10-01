@@ -10,7 +10,7 @@ import random
 import cfg
 from engine import (RuleTable, render, HForm, mm_to_px, HLine,
                     Char, CMN, VLine, _SimplePointedCurve,
-                    find_glyphs)
+                    find_glyphs, SForm)
 from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline, _Clock, is_last_barline_on_staff,
                    SlurOpen, SlurClose, Rest)
 from random import randint, choice
@@ -154,7 +154,6 @@ def set_slur(obj):              # obj = Note with closing slur point
     close_slur = obj.slur
     open_slur = SlurOpen.get_by_id(close_slur.id)
     open_note = open_slur.owner
-    # breakpoint()
     mitte = (obj.head_char.right - open_note.head_char.left) / 2
     cx = open_note.x + mitte
     cy = open_note.head_char.top - 50
@@ -223,7 +222,7 @@ def right_guard(obj):
             S.Accidental: 2,
             S.SimpleTimeSig: 0}[type(obj)]
 
-NON_CLOCKED_RIGHT_PADDING = {
+NON_CLOCK_RIGHT_PADDING = {
     KeySig: cfg.DESIRED_STAFF_SPACE_IN_PX,
     Accidental: cfg.DESIRED_STAFF_SPACE_IN_PX,
     Clef: cfg.DESIRED_STAFF_SPACE_IN_PX,
@@ -289,11 +288,21 @@ def get_clocked_space_and_padding(staff, right_padding_dict):
             # zieh 1 pixel ab
             right_padding_dict = {objtype: padding - 1 for objtype, padding in right_padding_dict.items()}
 
+def is_only_clock_in_bar(x):
+    return isinstance(x, _Clock) and \
+           isinstance(x.older_sibling(), Barline) and \
+           isinstance(x.younger_sibling(), (Barline, FinalBarline))
+def center_only_clock_in_bar(obj):
+    """centering only clocks in bar..."""
+    bar_half_width = (obj.width + obj.older_sibling().width - obj.older_sibling().char.width) / 2
+    center = obj.older_sibling().char.right + bar_half_width - obj.head_char.width / 2
+    obj.head_char.left = center
+
 # Nothing should be added to the notes after this stage which would
 # change it's dimensions
 def horizontal_spacing(staff):
     """horizontal spacing..."""
-    clock_space_list, right_padding_dict = get_clocked_space_and_padding(staff, NON_CLOCKED_RIGHT_PADDING)
+    clock_space_list, right_padding_dict = get_clocked_space_and_padding(staff, NON_CLOCK_RIGHT_PADDING)
     # braucht nicht das if, else reicht
     if staff.is_clocks_only():
         for obj, width in zip(staff.content, clock_space_list):
@@ -305,22 +314,12 @@ def horizontal_spacing(staff):
             if isinstance(obj, _Clock):
                 obj.width += clock_space_list[time_obj_idx]
                 obj._width_locked = 1
-                # handle single note bars 
-                if obj.dur == "w" and isinstance(obj.older_sibling(), Barline) and isinstance(obj.younger_sibling(), (Barline, FinalBarline)):
-                    # bar_half_width = (obj.width + obj.older_sibling().width - obj.older_sibling().char.width) / 2
-                    # bar_center = obj.older_sibling().left + bar_half_width
-                    obj.head_char.left += (obj.width/2)
-                    obj.head_char.left -= obj.head_char.width/2
-                    obj.head_char.left -= (obj.older_sibling().width - obj.older_sibling().char.width) / 2
-                    # vline = 
-                    
                 time_obj_idx += 1
             else:
                 # A barline at the end of the staff doesn't need it's
                 # right margin.
                 if not (isinstance(obj, (FinalBarline, Barline)) and obj.is_last_child()) and not isinstance(obj, _SimplePointedCurve):
                     obj.width += right_padding_dict.get(type(obj), 0)
-                    
 
 
 
@@ -364,11 +363,10 @@ def set_barline_char(obj):
     obj.char = VLine(length=obj._abstract_staff_height + StaffLines.THICKNESS,
                         thickness=Barline.THICKNESS + 1,
                         y=obj.current_ref_glyph_top() - StaffLines.THICKNESS * .5,
-                        # a barline is normally used after a note or a rest
+                        # a barline is normally used right after a note or a rest
                         x=obj.older_sibling().right if obj.older_sibling() else obj.parent().x,
-                        canvas_visible=True,
                         canvas_opacity=0.1,
-                        visible=True)
+                    )
 
 def is_final_barline(obj):
     return isinstance(obj, FinalBarline)
@@ -416,9 +414,9 @@ CMN.unsafeadd(set_accidental_char,
               is_accidental)
 
 
-S.E.CMN.unsafeadd(set_stem_line, is_note)
+CMN.unsafeadd(set_stem_line, is_note)
 
-S.E.CMN.unsafeadd(set_clef_char, isclef)
+CMN.unsafeadd(set_clef_char, isclef)
 
 CMN.unsafeadd(set_barline_char,
               lambda obj: is_barline(obj))
@@ -429,8 +427,11 @@ CMN.unsafeadd(place_final_barline,
 CMN.unsafeadd(horizontal_spacing,
               lambda x: isinstance(x, Staff))
 
+CMN.unsafeadd(center_only_clock_in_bar, is_only_clock_in_bar)
+
 CMN.unsafeadd(StaffLines.make,
               lambda obj: is_note(obj) or \
+              isinstance(obj, SForm) and obj.get_idx() == 0 or \
               is_rest(obj) or \
               isclef(obj) or \
               is_simple_timesig(obj) or \
@@ -796,14 +797,16 @@ if __name__ == "__main__":
     # bartok
     render(
         Staff(content=[
+            SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX),
             Clef(("g", 4,"")),
             SimpleTimeSig(num=4, denom=4),
             Note(pitch=("c",5,""),dur="h",slur=SlurOpen(id="bar1")),
             Note(pitch=("d",5,""),dur="h"),
-            Barline(canvas_visible=True),
+            Barline(id="xxx",canvas_visible=False),
             Note(pitch=("e",5,""),dur="w", 
-                 canvas_visible=True, 
-                 origin_visible=False
+                 canvas_visible=False, 
+                 origin_visible=False,
+                 id="foo"
                 ),
             Barline(),
             Note(pitch=("f",5,""),dur="h"),
@@ -822,9 +825,9 @@ if __name__ == "__main__":
             Note(pitch=("d",5,""),dur="h"),
             Barline(),
             Note(pitch=("c",5,""),dur="w",slur=SlurClose(id="bar5"),
-                 canvas_visible=True,
+                 canvas_visible=False,
                  origin_visible=False),
-            FinalBarline(canvas_visible=True)
+            FinalBarline(canvas_visible=False)
         ],
               width=mm_to_px(270), x=20, y=100),
         path="/tmp/test.svg"

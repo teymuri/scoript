@@ -324,6 +324,12 @@ class _SMTObject(_SVGIdentifier):
             if obj is self and i != len(siblings) - 1:
                 return siblings[i + 1]
 
+    def get_idx(self):
+        for i, x in enumerate(self.siblings()):
+            if x is self:
+                return i
+
+    # deprecated! use get_idx
     def index(self):
         for i, x in enumerate(self.siblings()):
             if x is self:
@@ -370,6 +376,8 @@ class _SMTObject(_SVGIdentifier):
                             if rule["pred"](member):
                                 members_prog_bar.set_description(f"applying to {member}")
                                 rule["hook"](member)
+                                # Re-lineup after rule applied, if obj under operation
+                                # has been a vertical or horizontal form.
                                 if isinstance(member, (HForm, VForm)):
                                     member.lineup()
                             else:
@@ -922,9 +930,9 @@ class _Line(_View):
     # start=None, end=None,
     **kwargs):
         super().__init__(**kwargs)
-        self.length = length or 0
+        self.length = length or 10
         self._angle = angle or 0
-        self._thickness = thickness or 0
+        self._thickness = thickness or 1
         self.direction = direction or 1
         self.endxr = endxr or 0
         self.endyr = endyr or 0

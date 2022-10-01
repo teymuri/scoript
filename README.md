@@ -11,6 +11,14 @@ Generally how defining new rules happens is as follows:
   3. Make a rule predicate func which returns true when called with some object as arg (this is called then on each obj in the score), to find out to which objs our rule should be applied.
   4. Make the actual engraving func which is applied to that object
 
+## Packen der Funktionalität für Zentrieren alleinstehender Noten im Takt am Ende von Horizontal spacing
+Es gab das Problem, dass ich die korrekten erwarteten Koordinaten (in Inkscape sah ich z.B. andere x, y als im Terminal)
+nicht sehen und benutzen konnte, als ich die einzelnen Noten im Takt zentrieren wollte. Das lag daran, dass
+die horizontal.lineups die für korrekte horizontale Werte sorgt, in der Zeit (am Ende der Funktion horizontal_spacing)
+noch nicht passiert ist. Das passiert in apply_rules rest nach dem rule-application.
+Das Problem war gelöst, indem ich die Funktionalität für die Znetrierung als ein eigenes Rule geschrieben habe die NACH
+der `horizontal_spacing` passiert.
+
 ## SVG measurements
 are by default (if not correct them) in pixels only.
 

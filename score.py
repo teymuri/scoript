@@ -29,6 +29,7 @@ class _Clock:
     def is_clock(cls, obj):
         return isinstance(obj, cls)
 
+    # DEPRECATED! use Staff.get_clocks
     @staticmethod
     def get_clock_objs(staff):
         return [obj for obj in staff.content if _Clock.is_clock(obj)]
@@ -94,6 +95,10 @@ class Staff(HForm):
         """Returns true if the content of the staff is made up of
         clocks only."""
         return all([isinstance(x, _Clock) for x in self.content])
+
+    def get_clocks(self):
+        """Returns all clock objs in my content list."""
+        return [obj for obj in self.content if isinstance(obj, _Clock)]
 
 
 class Barline(SForm):
