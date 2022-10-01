@@ -94,8 +94,8 @@ def set_keysig_char_list(keysig):
             o = 5
         elif dom == "bass":
             o = 3
-        char_list.append(Accidental(pitch=("f", o, "#"), domain=dom))
-        char_list.append(Accidental(pitch=("c", o, "#"), domain=dom))
+        char_list.append(Accidental(pitch=("f", o, "#")))
+        char_list.append(Accidental(pitch=("c", o, "#")))
     keysig.char_list = char_list
 
 
@@ -734,13 +734,13 @@ if __name__ == "__main__":
         FinalBarline()
 ]
     
-    # oneliner
-    one = Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5()+t6()+t7()+t8()+t9()+t10()+t11()+t12()+t13()+t14()+t15()+t16(),
-                
-               width=mm_to_px(270),
-               x=20,
-               y=60
-                )
+    # # oneliner
+    # one = Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5()+t6()+t7()+t8()+t9()+t10()+t11()+t12()+t13()+t14()+t15()+t16(),
+    #             
+    #            width=mm_to_px(270),
+    #            x=20,
+    #            y=60
+    #             )
     
     # two1 = Staff(content=[_clef(),_keysig(),_timesig()]+t1()+t2()+t3()+t4()+t5()+t6()+t7()+t8(),
     #                width=mm_to_px(270),
@@ -796,7 +796,7 @@ if __name__ == "__main__":
 
     # bartok
     render(
-        Staff(content=[
+        Staff(domain="treble", content=[
             SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX),
             Clef(("g", 4,"")),
             SimpleTimeSig(num=4, denom=4),
@@ -835,31 +835,31 @@ if __name__ == "__main__":
             SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX),
             Clef(("f", 4,"")),
             SimpleTimeSig(num=4, denom=4),
-            Note(domain="bass", pitch=("c",3,""),dur="h",slur=SlurOpen(id="bar12")),
-            Note(pitch=("d",5,""),dur="h"),
-            Barline(id="xxx",canvas_visible=False),
-            Note(pitch=("e",5,""),dur="w", 
+            Note(pitch=("c",3,""),dur="h",slur=SlurOpen(id="bar12")),
+            Note(pitch=("d",3,""),dur="h"),
+            Barline(canvas_visible=False),
+            Note(pitch=("e",3,""),dur="w", 
                  canvas_visible=False, 
                  origin_visible=False,
                  id="foo"
                 ),
             Barline(),
-            Note(pitch=("f",5,""),dur="h"),
-            Note(pitch=("e",5,""),dur="h"),
+            Note(pitch=("f",3,""),dur="h"),
+            Note(pitch=("e",3,""),dur="h"),
             Barline(),
-            Note(pitch=("d",5,""),dur="h",slur=SlurClose(id="bar12")),
+            Note(pitch=("d",3,""),dur="h",slur=SlurClose(id="bar12")),
             Rest(dur="h"),
             Barline(),
-            Note(pitch=("e",5,""),dur="h",slur=SlurOpen(id="bar52")),
-            Note(pitch=("f",5,""),dur="h"),
+            Note(pitch=("e",3,""),dur="h",slur=SlurOpen(id="bar52")),
+            Note(pitch=("f",3,""),dur="h"),
             Barline(),
-            Note(pitch=("g",5,""),dur="h"),
-            Note(pitch=("f",5,""),dur="h"),
+            Note(pitch=("g",3,""),dur="h"),
+            Note(pitch=("f",3,""),dur="h"),
             Barline(),
-            Note(pitch=("e",5,""),dur="h"),
-            Note(pitch=("d",5,""),dur="h"),
+            Note(pitch=("e",3,""),dur="h"),
+            Note(pitch=("d",3,""),dur="h"),
             Barline(),
-            Note(pitch=("c",5,""),dur="w",slur=SlurClose(id="bar52"),
+            Note(pitch=("c",3,""),dur="w",slur=SlurClose(id="bar52"),
                  canvas_visible=False,
                  origin_visible=False),
             FinalBarline(canvas_visible=False)

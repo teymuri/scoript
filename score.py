@@ -1,7 +1,5 @@
-
-
 """
-Conveniece objects for creating music
+This file contains abstractions to the core objects as conveniece objects for creating music.
 """
 
 
@@ -205,8 +203,6 @@ class Note(SForm, _Clock):
                  pitch=None,
                  slur=None,
                  **kwargs):
-        if "domain" not in kwargs:
-            kwargs["domain"] = "treble"
         SForm.__init__(self, **kwargs)
         _Clock.__init__(self, dur)
         if pitch:
@@ -264,8 +260,6 @@ class Note(SForm, _Clock):
 
 class Accidental(SForm):
     def __init__(self, pitch=None, **kwargs):
-        if "domain" not in kwargs:
-            kwargs["domain"] = "treble"
         SForm.__init__(self, **kwargs)
         # self.pitch = pitch      # e.g. ("f", 5, "#")
         self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])

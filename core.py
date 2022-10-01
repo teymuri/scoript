@@ -1,5 +1,5 @@
 """
-Semantic Music Typesetting
+Satie
 """
 
 import tempfile
@@ -152,7 +152,7 @@ def descendants(obj, young_gen_first=True) -> list:
     return desc_list
 
 def family_tree(obj) -> list:
-    """Returns a list containing the object and it's descendants
+    """Returns a list containing the object itself and it's descendants
     ordered from old to young.
 
     """
@@ -636,6 +636,7 @@ class _Form(_Canvas, _Font):
         _Font.__init__(self, font)
         self.content = content or []
         self.establish_parent_relation(self.content)
+        self.pass_on_domain()
         # The following 3 attributes carry information about the
         # height of a Form object. Each Form is created with a default
         # (imaginary) height, which is equal to the height of the
@@ -680,15 +681,20 @@ class _Form(_Canvas, _Font):
     
     def establish_parent_relation(self, obj_list):
         """Establishes parental relationships to each obj in obj_list:
-        adds this object and all it's parents to the ancestors list of
+        adds this form and all it's parents to the top of ancestor's list of
         new objects and their descendants.
 
         """
         for obj in obj_list:
-            for member in family_tree(obj):
+            for member in family_tree(obj): # family_tree includes the obj itself.
                 for parent in ([self] + list(reversed(self.ancestors))):
                     member.ancestors.insert(0, parent)
     
+    def pass_on_domain(self):
+        for desc in descendants(self, young_gen_first=False):
+            if desc.domain is None:
+                desc.domain = self.domain
+
     # Children is a sequence. This method modifies only ancestor lists.
     def _establish_parental_relationship(self, children): # DEPRECATED!
         for child in children:
@@ -829,7 +835,7 @@ class SForm(_Form):
     def __init__(self, **kwargs):
         _Form.__init__(self, **kwargs)
         self.canvas_color = svgwrite.utils.rgb(0, 100, 0, "%")
-        self.domain = kwargs.get("domain", "stacked")
+        # self.domain = kwargs.get("domain", "stacked")
         # Content may contain children with absolute x, so compute horizontals with respect to them.
         # See whats happening in _Form init with children without absx!
         self.refresh_horizontals()
@@ -863,7 +869,7 @@ class HForm(_Form):
     def __init__(self, **kwargs):
         _Form.__init__(self, **kwargs)
         self.canvas_color = svgwrite.utils.rgb(0, 0, 100, "%")
-        self.domain = kwargs.get("domain", "horizontal")
+        # self.domain = kwargs.get("domain", "horizontal")
         self.lineup()
         self.refresh_horizontals()
         self.refresh_verticals()
