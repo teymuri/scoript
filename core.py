@@ -459,6 +459,7 @@ class _Canvas(_SMTObject):
         self._y = 0 if y is None else y
         self.y_locked = False if y is None else True
         self._width = 0 if width is None else width
+        # self._width = width
         self._width_locked = False if width is None else True
         self._height = 0 if height is None else height
         self.height_locked = False if height is None else True
@@ -636,7 +637,7 @@ class _Form(_Canvas, _Font):
         _Font.__init__(self, font)
         self.content = content or []
         self.establish_parent_relation(self.content)
-        self.pass_on_domain()
+        self.pass_on_attrs()
         # The following 3 attributes carry information about the
         # height of a Form object. Each Form is created with a default
         # (imaginary) height, which is equal to the height of the
@@ -690,7 +691,9 @@ class _Form(_Canvas, _Font):
                 for parent in ([self] + list(reversed(self.ancestors))):
                     member.ancestors.insert(0, parent)
     
-    def pass_on_domain(self):
+    def pass_on_attrs(self):
+        """Passes on any of form's attributes to it's descendants
+        if they havn't specified them explicitely."""
         for desc in descendants(self, young_gen_first=False):
             if desc.domain is None:
                 desc.domain = self.domain
@@ -853,15 +856,16 @@ class SForm(_Form):
             c.x = self.x
             c.y = self.y
         self.content.extend(objs)
+        self.pass_on_attrs()
         # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # # which would have been to early!????
         self.refresh_horizontals()
         self.refresh_verticals()
-        for A in reversed(self.ancestors):
-            if isinstance(A, _Form) and not isinstance(A, SForm):
-                A.lineup()
-            A.refresh_horizontals()
-            A.refresh_verticals()
+        for anc in reversed(self.ancestors):
+            if isinstance(anc, _Form) and not isinstance(anc, SForm):
+                anc.lineup()
+            anc.refresh_horizontals()
+            anc.refresh_verticals()
 
 
 class HForm(_Form):
@@ -882,6 +886,7 @@ class HForm(_Form):
             new_obj.x = self.x
             new_obj.y = self.y
         self.content.extend(objs)
+        self.pass_on_attrs()
         # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # # which would have been to early!????
         self.lineup()
@@ -916,6 +921,7 @@ class VForm(_Form):
             c.x = self.x
             c.y = self.y
         self.content.extend(objs)
+        self.pass_on_attrs()
         # # Having set the content before would have caused assign_x to trigger computing horizontals for the Form,
         # # which would have been to early!????
         self.lineup()

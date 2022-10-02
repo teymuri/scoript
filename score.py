@@ -99,6 +99,11 @@ class Staff(HForm):
         return [obj for obj in self.content if isinstance(obj, _Clock)]
 
 
+class MultiStaff(VForm):
+    def __init__(self, **kwargs):
+        VForm.__init__(self, **kwargs)
+
+
 class Barline(SForm):
     # Gould, page 38: The barline is thicker than a stave-line ...
     THICKNESS = StaffLines.THICKNESS + .1
