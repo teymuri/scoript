@@ -28,5 +28,5 @@ DUR_SPACE_PROPS = {
     "e": 2.5, "s": 2
 }
 
-# _LEFT_MARGIN = mm_to_px(36)
-# _TOP_MARGIN = mm_to_px(56)
+# For horizontal lineup: whether to put X or LEFT of next at right of last object
+HLINEUP_NEXT_LEFT = "x"

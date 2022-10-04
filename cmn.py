@@ -18,7 +18,8 @@ import score as S
 import copy 
 
 
-# cfg.CANVAS_VISIBLE = cfg.ORIGIN_VISIBLE = False
+cfg.CANVAS_VISIBLE = True
+cfg.ORIGIN_VISIBLE = False
 
 def pass_on_width(multistaff):
     """passing on multistaff's width to staves..."""
@@ -262,7 +263,7 @@ def get_non_clocked_space(staff, right_padding_dict):
             space += right_padding_dict.get(type(x), 0)
     return space
 
-def get_clocked_space_and_padding(staff, right_padding_dict):
+def get_clock_space_and_padding(staff, right_padding_dict):
     """Returns a list"""
     while True:
         # get sum of all non-time objects width of the staff
@@ -309,7 +310,7 @@ def center_only_clock_in_bar(obj):
 # change it's dimensions
 def horizontal_spacing(staff):
     """horizontal spacing..."""
-    clock_space_list, right_padding_dict = get_clocked_space_and_padding(staff, NON_CLOCK_RIGHT_PADDING)
+    clock_space_list, right_padding_dict = get_clock_space_and_padding(staff, NON_CLOCK_RIGHT_PADDING)
     # braucht nicht das if, else reicht
     if staff.is_clocks_only():
         for obj, width in zip(staff.content, clock_space_list):
@@ -368,13 +369,18 @@ def is_barline(x): return isinstance(x, Barline)
 def set_barline_char(obj):
     """setting barline char..."""
     # obj is a barline object
-    obj.char = VLine(length=obj._abstract_staff_height + StaffLines.THICKNESS,
-                        thickness=Barline.THICKNESS + 1,
-                        y=obj.current_ref_glyph_top() - StaffLines.THICKNESS * .5,
-                        # a barline is normally used right after a note or a rest
-                        x=obj.older_sibling().right if obj.older_sibling() else obj.parent().x,
-                        canvas_opacity=0.1,
-                    )
+    if isinstance(obj.parent(), Staff) and isinstance(obj.parent().parent(), MultiStaff):
+        # length=obj.parent().parent().height
+        length=100
+
+    obj.char = VLine(
+        length=length,
+        thickness=Barline.THICKNESS + 1,
+        y=obj.current_ref_glyph_top() - StaffLines.THICKNESS * .5,
+        # a barline is normally used right after a note or a rest
+        x=obj.older_sibling().right if obj.older_sibling() else obj.parent().x,
+        canvas_opacity=0.1,
+        )
 
 def is_final_barline(obj):
     return isinstance(obj, FinalBarline)
@@ -411,31 +417,27 @@ test
 CMN.unsafeadd(pass_on_width, lambda x: isinstance(x, MultiStaff))
 # The single argument to rule hooks are every objects defined in your
 # score.
-CMN.unsafeadd(set_simple_timesig_chars,
-              is_simple_timesig)
+CMN.unsafeadd(set_simple_timesig_chars, is_simple_timesig)
 
 CMN.unsafeadd(set_notehead_char, is_note)
 CMN.unsafeadd(set_rest_char, is_rest)
 
 CMN.unsafeadd(set_keysig_char_list, is_keysig)
 
-CMN.unsafeadd(set_accidental_char,
-              is_accidental)
+CMN.unsafeadd(set_accidental_char, is_accidental)
 
 
 CMN.unsafeadd(set_stem_line, is_note)
 
 CMN.unsafeadd(set_clef_char, isclef)
 
-CMN.unsafeadd(set_barline_char,
-              lambda obj: is_barline(obj))
-
-CMN.unsafeadd(place_final_barline,
-              is_final_barline)
-
+CMN.unsafeadd(set_barline_char, lambda obj: is_barline(obj))
 CMN.unsafeadd(horizontal_spacing,
               lambda x: isinstance(x, Staff))
 
+
+
+CMN.unsafeadd(place_final_barline, is_final_barline)
 CMN.unsafeadd(center_only_clock_in_bar, is_only_clock_in_bar)
 
 CMN.unsafeadd(StaffLines.make,
@@ -808,7 +810,7 @@ if __name__ == "__main__":
         Staff(domain="treble",
              content=[
                     SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX*.5),
-                    Clef(("g", 4,"")),
+                    Clef(("g", 4,""), origin_visible=False),
                     SimpleTimeSig(num=4, denom=4),
                     Note(pitch=("c",5,""),dur="h",slur=SlurOpen(id="bar1")),
                     Note(pitch=("d",5,""),dur="h"),
@@ -841,7 +843,7 @@ if __name__ == "__main__":
              ]),
         Staff(domain="bass",content=[
                     SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX*.5),
-                    Clef(("f", 4,"")),
+                    Clef(("g", 4,""), origin_visible=False),
                     SimpleTimeSig(num=4, denom=4),
                     Note(pitch=("c",3,""),dur="h",slur=SlurOpen(id="bar12")),
                     Note(pitch=("d",3,""),dur="h"),

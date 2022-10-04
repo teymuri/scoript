@@ -899,7 +899,10 @@ class HForm(_Form):
             
     def lineup(self):
         for a, b in zip(self.content[:-1], self.content[1:]):            
-            b.left = a.right
+            if cfg.HLINEUP_NEXT_LEFT == "x":
+                b.x = a.right
+            elif cfg.HLINEUP_NEXT_LEFT == "left":
+                b.left = a.right
 
 
 class VForm(_Form):
