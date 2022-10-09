@@ -805,78 +805,77 @@ if __name__ == "__main__":
     #        # four1,four2,four3,four4,
     #        path="/tmp/test.svg")
 
-    # bartok
-    piano = MultiStaff(width=mm_to_px(270), x=20, y=200,content=[
-        Staff(domain="treble",
-             content=[
-                    SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX*.5),
-                    Clef(("g", 4,""), origin_visible=False),
-                    SimpleTimeSig(num=4, denom=4),
-                    Note(pitch=("c",5,""),dur="h",slur=SlurOpen(id="bar1")),
-                    Note(pitch=("d",5,""),dur="h"),
-                    Barline(id="xxx",canvas_visible=False),
-                    Note(pitch=("e",5,""),dur="w", 
-                         canvas_visible=False, 
-                         origin_visible=False,
-                         id="foo"
-                        ),
-                    Barline(),
-                    Note(pitch=("f",5,""),dur="h"),
-                    Note(pitch=("e",5,""),dur="h"),
-                    Barline(),
-                    Note(pitch=("d",5,""),dur="h",slur=SlurClose(id="bar1")),
-                    Rest(dur="h"),
-                    Barline(),
-                    Note(pitch=("e",5,""),dur="h",slur=SlurOpen(id="bar5")),
-                    Note(pitch=("f",5,""),dur="h"),
-                    Barline(),
-                    Note(pitch=("g",5,""),dur="h"),
-                    Note(pitch=("f",5,""),dur="h"),
-                    Barline(),
-                    Note(pitch=("e",5,""),dur="h"),
-                    Note(pitch=("d",5,""),dur="h"),
-                    Barline(),
-                    Note(pitch=("c",5,""),dur="w",slur=SlurClose(id="bar5"),
-                         canvas_visible=False,
-                         origin_visible=False),
-                    FinalBarline(canvas_visible=False)
-             ]),
-        Staff(domain="bass",content=[
-                    SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX*.5),
-                    Clef(("g", 4,""), origin_visible=False),
-                    SimpleTimeSig(num=4, denom=4),
-                    Note(pitch=("c",3,""),dur="h",slur=SlurOpen(id="bar12")),
-                    Note(pitch=("d",3,""),dur="h"),
-                    Barline(canvas_visible=False),
-                    Note(pitch=("e",3,""),dur="w", 
-                         canvas_visible=False, 
-                         origin_visible=False,
-                         id="foo"
-                        ),
-                    Barline(),
-                    Note(pitch=("f",3,""),dur="h"),
-                    Note(pitch=("e",3,""),dur="h"),
-                    Barline(),
-                    Note(pitch=("d",3,""),dur="h",slur=SlurClose(id="bar12")),
-                    Rest(dur="h"),
-                    Barline(),
-                    Note(pitch=("e",3,""),dur="h",slur=SlurOpen(id="bar52")),
-                    Note(pitch=("f",3,""),dur="h"),
-                    Barline(),
-                    Note(pitch=("g",3,""),dur="h"),
-                    Note(pitch=("f",3,""),dur="h"),
-                    Barline(),
-                    Note(pitch=("e",3,""),dur="h"),
-                    Note(pitch=("d",3,""),dur="h"),
-                    Barline(),
-                    Note(pitch=("c",3,""),dur="w",slur=SlurClose(id="bar52"),
-                         canvas_visible=False,
-                         origin_visible=False),
-                    FinalBarline(canvas_visible=False)
-            ])
-        ])
-    
-    render(piano, path="/tmp/test.svg")
+    # # bartok
+    # piano = MultiStaff(width=mm_to_px(270), x=20, y=200,content=[
+    #     Staff(domain="treble",
+    #          content=[
+    #                 SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX*.5),
+    #                 Clef(("g", 4,""), origin_visible=False),
+    #                 SimpleTimeSig(num=4, denom=4),
+    #                 Note(pitch=("c",5,""),dur="h",slur=SlurOpen(id="bar1")),
+    #                 Note(pitch=("d",5,""),dur="h"),
+    #                 Barline(id="xxx",canvas_visible=False),
+    #                 Note(pitch=("e",5,""),dur="w", 
+    #                      canvas_visible=False, 
+    #                      origin_visible=False,
+    #                      id="foo"
+    #                     ),
+    #                 Barline(),
+    #                 Note(pitch=("f",5,""),dur="h"),
+    #                 Note(pitch=("e",5,""),dur="h"),
+    #                 Barline(),
+    #                 Note(pitch=("d",5,""),dur="h",slur=SlurClose(id="bar1")),
+    #                 Rest(dur="h"),
+    #                 Barline(),
+    #                 Note(pitch=("e",5,""),dur="h",slur=SlurOpen(id="bar5")),
+    #                 Note(pitch=("f",5,""),dur="h"),
+    #                 Barline(),
+    #                 Note(pitch=("g",5,""),dur="h"),
+    #                 Note(pitch=("f",5,""),dur="h"),
+    #                 Barline(),
+    #                 Note(pitch=("e",5,""),dur="h"),
+    #                 Note(pitch=("d",5,""),dur="h"),
+    #                 Barline(),
+    #                 Note(pitch=("c",5,""),dur="w",slur=SlurClose(id="bar5"),
+    #                      canvas_visible=False,
+    #                      origin_visible=False),
+    #                 FinalBarline(canvas_visible=False)
+    #          ]),
+    #     Staff(domain="bass",content=[
+    #                 SForm(width=cfg.DESIRED_STAFF_SPACE_IN_PX*.5),
+    #                 Clef(("g", 4,""), origin_visible=False),
+    #                 SimpleTimeSig(num=4, denom=4),
+    #                 Note(pitch=("c",3,""),dur="h",slur=SlurOpen(id="bar12")),
+    #                 Note(pitch=("d",3,""),dur="h"),
+    #                 Barline(canvas_visible=False),
+    #                 Note(pitch=("e",3,""),dur="w", 
+    #                      canvas_visible=False, 
+    #                      origin_visible=False,
+    #                      id="foo"
+    #                     ),
+    #                 Barline(),
+    #                 Note(pitch=("f",3,""),dur="h"),
+    #                 Note(pitch=("e",3,""),dur="h"),
+    #                 Barline(),
+    #                 Note(pitch=("d",3,""),dur="h",slur=SlurClose(id="bar12")),
+    #                 Rest(dur="h"),
+    #                 Barline(),
+    #                 Note(pitch=("e",3,""),dur="h",slur=SlurOpen(id="bar52")),
+    #                 Note(pitch=("f",3,""),dur="h"),
+    #                 Barline(),
+    #                 Note(pitch=("g",3,""),dur="h"),
+    #                 Note(pitch=("f",3,""),dur="h"),
+    #                 Barline(),
+    #                 Note(pitch=("e",3,""),dur="h"),
+    #                 Note(pitch=("d",3,""),dur="h"),
+    #                 Barline(),
+    #                 Note(pitch=("c",3,""),dur="w",slur=SlurClose(id="bar52"),
+    #                      canvas_visible=False,
+    #                      origin_visible=False),
+    #                 FinalBarline(canvas_visible=False)
+    #         ])
+    #     ])
+    # render(piano, path="/tmp/test.svg")
 
     
     # staff = Staff(content=[
@@ -903,3 +902,8 @@ if __name__ == "__main__":
     # ], x=40, y=100, width=mm_to_px(100))
     # render(staff,
     #        path="/tmp/test.svg")
+
+    render(HForm(content=[SForm(content=[
+                    Clef(("g", 4, ""))
+    for _ in range(10)], x=40, y=100, width=mm_to_px(30),
+    )]), path="/tmp/test.svg")
