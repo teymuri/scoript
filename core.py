@@ -407,12 +407,13 @@ def page_size(use):
 
 PAGEH, PAGEW = page_size("largest")
 
-def render(*items, path="/tmp/smt"):
+def render(*items, path="/tmp/smt", apply_rules=True):
     """score items
     """
     drawing = svgwrite.drawing.Drawing(filename=path, size=(PAGEW, PAGEH), debug=True)
     for item in items:
-        item.apply_rules()
+        if apply_rules:
+            item.apply_rules()
         item.pack_svg_list()
         for svg_elem in item._svg_list:
             drawing.add(svg_elem)
