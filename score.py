@@ -10,14 +10,18 @@ from core import _SMTObject, VLine, HLine, SForm, HForm, VForm, Char, _SimplePoi
 class Voice(HForm):
     pass
 
+
 class _Clock:
+    
     ORDER = {
         "s": 0, "e": 1, "q": 2,
         "h": 3, "w": 4
     }
-    def __init__(self, dur=None):
+
+    def __init__(self, dur, beat):
         # durations are: "w", "h", "q", "e", "s"
         self.dur = dur or "q"
+        self.beat = beat or 0
     
     @staticmethod
     def shortest(time_objs_list):
@@ -206,13 +210,14 @@ class Note(SForm, _Clock): # hform besser?
                  obeam_graver=None,
                  cbeam_graver=None,
                  dur=None,
+                 beat=None,
                  pitch=None,
                  name: str = None,
                  slur=None,
                  acc_char=None,
                  **kwargs):
         SForm.__init__(self, **kwargs)
-        _Clock.__init__(self, dur)
+        _Clock.__init__(self, dur, beat)
         if pitch:
             self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])
         else:
