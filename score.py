@@ -7,7 +7,8 @@ import core as E
 import cfg
 from core import _SMTObject, VLine, HLine, SForm, HForm, VForm, Char, _SimplePointedCurve
 
-
+class Voice(HForm):
+    pass
 
 class _Clock:
     ORDER = {
@@ -85,7 +86,7 @@ class StaffLines(VForm):
             obj.extend_content(line)
 
 
-class Staff(HForm):
+class Staff(HForm): # wenn voices liegen aufeinander, dann SForm
     def __init__(self, **kwargs):
         HForm.__init__(self, **kwargs)
 
@@ -195,9 +196,9 @@ class Rest(_Clock, SForm):
     def char(self, new):
         self._char = new
         self.extend_content(self._char)
-        
-        
-class Note(SForm, _Clock):
+
+
+class Note(SForm, _Clock): # hform besser?
     
     def __init__(self,
                  head_char=None, # ???
@@ -206,7 +207,9 @@ class Note(SForm, _Clock):
                  cbeam_graver=None,
                  dur=None,
                  pitch=None,
+                 name: str = None,
                  slur=None,
+                 acc_char=None,
                  **kwargs):
         SForm.__init__(self, **kwargs)
         _Clock.__init__(self, dur)
