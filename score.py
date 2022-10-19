@@ -8,6 +8,13 @@ import cfg
 from core import _SMTObject, VLine, HLine, SForm, HForm, VForm, Char, _SimplePointedCurve
 
 
+
+class _ScoreObj:
+
+    def __init__(self, right_padding=None):
+        self.right_padding = right_padding
+
+
 class Voice(HForm):
 
     def __init__(self, **kwargs):
@@ -309,10 +316,10 @@ class Accidental(SForm):
         self.extend_content(self._char)
 
 
-class Clef(SForm):
+class Clef(SForm, _ScoreObj):
     def __init__(self, pitch=None, **kwargs):
+        _ScoreObj.__init__(self, right_padding=kwargs.pop("right_padding", 0))
         SForm.__init__(self, **kwargs)
-        # _Pitch.__init__(self, pitch)
         self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])
         self._char = None
 
