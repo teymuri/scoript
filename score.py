@@ -37,9 +37,11 @@ class _Clock:
         "h": 3, "w": 4
     }
 
-    def __init__(self, dur, beat):
+    def __init__(self, dur, ndur, beat):
         # durations are: "w", "h", "q", "e", "s"
         self.dur = dur or "q"
+        # numerical duration
+        self.ndur = ndur or 1 # 1 corresponds to "q"
         self.beat = beat or 0
     
     @staticmethod
