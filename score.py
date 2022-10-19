@@ -7,8 +7,27 @@ import core as E
 import cfg
 from core import _SMTObject, VLine, HLine, SForm, HForm, VForm, Char, _SimplePointedCurve
 
+
 class Voice(HForm):
-    pass
+
+    def __init__(self, **kwargs):
+        HForm.__init__(self, **kwargs)
+        self.set_beats()
+    
+    def set_beats(self):
+        """This method starts setting beats from the second clock obj.
+        I.e. the first clock in the least either has excplicite beat
+        or it's beat remains 0 implcitely."""
+        clocks = self.get_clocks()
+        for a, b in zip(clocks[0:-1], clocks[1:]):
+            # we are going to set the beat for b
+            if b.beat is None:
+                b.beat = a.beat + a.ndur
+
+    def get_clocks(self):
+        """Returns all clock objs in content list."""
+        return [obj for obj in self.content if isinstance(obj, _Clock)]
+    
 
 
 class _Clock:
