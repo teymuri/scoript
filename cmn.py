@@ -12,7 +12,7 @@ from core import (RuleTable, render, HForm, mm_to_px, HLine,
                     Char, CMN, VLine, _SimplePointedCurve,
                     find_glyphs, SForm)
 from score import (SimpleTimeSig, Clef, Note, Barline, StaffLines, KeySig, Accidental, Staff, Stem, FinalBarline, _Clock, is_last_barline_on_staff,
-                   SlurOpen, SlurClose, Rest, MultiStaff)
+                   SlurOpen, SlurClose, Rest, MultiStaff, Voice)
 from random import randint, choice
 import score as S
 import copy 
@@ -903,7 +903,11 @@ if __name__ == "__main__":
     # render(staff,
     #        path="/tmp/test.svg")
 
-    render(HForm(content=[SForm(content=[
-                    Clef(("g", 4, ""))
-    for _ in range(10)], x=40, y=100, width=mm_to_px(30),
-    )]), path="/tmp/test.svg")
+    # render(
+    #     HForm(content=[SForm(content=[
+    #                 Clef(("g", 4, ""))
+    # for _ in range(10)], x=40, y=100, width=mm_to_px(30),
+    # )]), path="/tmp/test.svg")
+
+    v=Voice(content=[Note(beat=1, ndur=.5),Clef(), Note(ndur=.25), Note(beat=0, ndur=.35), Note(ndur=1)])
+    print([x.beat for x in v.get_clocks()])

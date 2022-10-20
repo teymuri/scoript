@@ -26,7 +26,7 @@ class Voice(HForm):
         I.e. the first clock in the least either has excplicite beat
         or it's beat remains 0 implcitely."""
         clocks = self.get_clocks()
-        for a, b in zip(clocks[0:-1], clocks[1:]):
+        for a, b in zip(clocks[:-1], clocks[1:]):
             # we are going to set the beat for b
             if b.beat is None:
                 b.beat = a.beat + a.ndur
@@ -49,7 +49,7 @@ class _Clock:
         self.dur = dur or "q"
         # numerical duration
         self.ndur = ndur or 1 # 1 corresponds to "q"
-        self.beat = beat or 0
+        self.beat = beat 
     
     @staticmethod
     def shortest(time_objs_list):
@@ -244,6 +244,7 @@ class Note(SForm, _Clock): # hform besser?
                  obeam_graver=None,
                  cbeam_graver=None,
                  dur=None,
+                 ndur=None,
                  beat=None,
                  pitch=None,
                  name: str = None,
@@ -251,7 +252,7 @@ class Note(SForm, _Clock): # hform besser?
                  acc_char=None,
                  **kwargs):
         SForm.__init__(self, **kwargs)
-        _Clock.__init__(self, dur, beat)
+        _Clock.__init__(self, dur, ndur, beat)
         if pitch:
             self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])
         else:
@@ -326,6 +327,8 @@ class Clef(SForm, _ScoreObj):
     def __init__(self, pitch=None, **kwargs):
         _ScoreObj.__init__(self, right_padding=kwargs.pop("right_padding", 0))
         SForm.__init__(self, **kwargs)
+        if pitch is None:
+            pitch = ("g", "", 4)
         self.pitch = _Pitch(name=pitch[0], suffix=pitch[2], octave=pitch[1])
         self._char = None
 
