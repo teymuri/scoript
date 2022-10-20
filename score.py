@@ -137,15 +137,21 @@ class MultiStaff(VForm):
         VForm.__init__(self, **kwargs)
 
 
-class Barline(SForm):
-    # Gould, page 38: The barline is thicker than a stave-line ...
+# Types by Gould: single, double, final, repeat
+class _Barline:
     THICKNESS = StaffLines.THICKNESS + .1
+    def __init__(self, scope_id):
+        # where to put it, over the system or the staff
+        self.scope_id = scope_id
+
+
+class Barline(SForm, _Barline):
+    # Gould, page 38: The barline is thicker than a stave-line ...
     
-    def __init__(self, type="single", **kwargs):
-        # Types by Gould: single, double, final, repeat
-        self.type = type
+    def __init__(self, **kwargs):
+        _Barline.__init__(self, kwargs.pop("scope_id", None))
+        SForm.__init__(self, **kwargs)
         self._char = None
-        super().__init__(**kwargs)
     
     @property
     def char(self):
