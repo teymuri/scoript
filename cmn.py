@@ -285,6 +285,7 @@ def get_clock_space_and_padding(staff, right_padding_dict):
         shortest_time_obj_width = None
         clock_space_list = []
         for obj in clocks:
+            # This space will be the right-padding of the clock object.
             space = unit_of_space * _dur_ref_ratio(obj.dur, ref_dur) - obj.width
             clock_space_list.append(space)
             if obj is shortest_time_obj:

@@ -249,7 +249,6 @@ class Note(SForm, _Clock): # hform besser?
                  pitch=None,
                  name: str = None,
                  slur=None,
-                 acc_char=None,
                  **kwargs):
         SForm.__init__(self, **kwargs)
         _Clock.__init__(self, dur, ndur, beat)
