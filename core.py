@@ -430,6 +430,8 @@ class _Canvas(_SMTObject):
                  yscale=1,
                  x=None,
                  y=None,
+                 x_offset=0,
+                 y_offset=0,
                  rotate=0,
                  skewx=0,
                  skewy=0,
@@ -459,8 +461,9 @@ class _Canvas(_SMTObject):
         self.x_locked = False if x is None else True
         self._y = 0 if y is None else y
         self.y_locked = False if y is None else True
+        self.x_offset = x_offset
+        self.y_offset = y_offset
         self._width = 0 if width is None else width
-        # self._width = width
         self._width_locked = False if width is None else True
         self._height = 0 if height is None else height
         self.height_locked = False if height is None else True
@@ -470,9 +473,11 @@ class _Canvas(_SMTObject):
     @property
     def yscale(self): return self._yscale    
     @property
-    def x(self): return self._x
+    def x(self): 
+        return self._x + self.x_offset
     @property
-    def y(self): return self._y
+    def y(self): 
+        return self._y + self.y_offset
 
 _ORIGIN_CROSS_LEN = 20
 _ORIGIN_CIRCLE_R = 4
@@ -516,14 +521,14 @@ class _View(_Canvas):
     @_Canvas.x.setter
     def x(self, new):
         if not self.x_locked:
-            self._x = new
+            self._x = new + self.x_offset
             for anc in reversed(self.ancestors):
                 anc.refresh_horizontals()
     
     @_Canvas.y.setter
     def y(self, new):
         if not self.y_locked:
-            self._y = new
+            self._y = new + self.y_offset
             for anc in reversed(self.ancestors):
                 anc.refresh_verticals()
     
