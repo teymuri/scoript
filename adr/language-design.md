@@ -39,3 +39,25 @@ sily write an interface for SMT for any language.
 <!---
 What is the status, such as proposed, accepted, rejected, deprecated, superseded, etc.?
 -->
+
+Anderes Beispiel:
+` 
+1 Nc#;Nfb;
+  2 Scnt:(Vcnt:(Nnm:c#,xo:-3.14,hdc:red;Npc:60;);Vcnt:(Nnm:c##4,;));
+  3 
+  4 S
+  5     cnt: (
+  6         V
+  7             cnt: (
+  8 
+  9             )
+ 10     )
+ 11 
+ 12 sf cnt:(vo cnt:(no nm: getname N nm:c#4;))
+ 13 stf cnt: (vc cnt: (nt nm: Getname n nm: c#4;, hdcl:blue;))
+ 14 obj k1:v1, kN:vN; obj2 k1:v1, kN:vN;
+ 15 DF my-c N nm: c4;
+ 16 DF my-list (1+2+3+4; 2; 3; 4);
+ 17 
+ 18 Dfn mylst sq 1; 2; 3; 4;
+`
